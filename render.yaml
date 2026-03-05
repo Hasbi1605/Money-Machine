@@ -48,7 +48,7 @@ services:
       - key: TELEGRAM_CHAT_ID
         sync: false
       - key: NEWS_SITE_URL
-        sync: false  # set to your cikalnews Render URL
+        sync: false # set to your cikalnews Render URL
       - key: PYTHON_VERSION
         value: "3.11"
     healthCheckPath: /health
