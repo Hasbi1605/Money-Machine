@@ -1,50 +1,43 @@
-{% extends "base.html" %}
-
-{% block content %}
+{% extends "base.html" %} {% block content %}
 <div class="home-layout">
-    <div class="home-main">
-        <div class="page-header">
-            <h1 class="page-title">🔍 Cari Artikel</h1>
-        </div>
-
-        <form action="/cari" method="GET" class="search-form">
-            <input type="text" name="q" value="{{ query }}" placeholder="Ketik kata kunci..." class="search-input" autofocus>
-            <button type="submit" class="btn-primary">Cari</button>
-        </form>
-
-        {% if query %}
-        <p class="search-result-info">
-            Ditemukan <strong>{{ total }}</strong> artikel untuk "<em>{{ query }}</em>"
-        </p>
-
-            {% if articles %}
-            <div class="category-grid">
-                {% for article in articles %}
-                <a href="/artikel/{{ article.slug }}" class="card card-vertical">
-                    <div class="card-image">
-                        <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy">
-                        {% if article.category in categories %}
-                        <span class="card-badge" style="background: {{ categories[article.category].color }}">
-                            {{ categories[article.category].label }}
-                        </span>
-                        {% endif %}
-                    </div>
-                    <div class="card-body">
-                        <h3 class="card-title">{{ article.title }}</h3>
-                        <p class="card-excerpt">{{ article.excerpt[:150] }}...</p>
-                        <span class="card-time">{{ time_ago(article.created_at) }}</span>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state">
-                <p class="empty-icon">🔍</p>
-                <h2>Tidak Ditemukan</h2>
-                <p>Tidak ada artikel yang cocok dengan pencarian Anda.</p>
-            </div>
-            {% endif %}
-        {% endif %}
+  <div class="home-main">
+    <div class="page-header">
+      <h1 class="page-title">🔍 Cari Artikel</h1>
     </div>
+
+    <form action="/cari" method="GET" class="search-form">
+      <input type="text" name="q" value="{{ query }}" placeholder="Ketik kata kunci..." class="search-input" autofocus />
+      <button type="submit" class="btn-primary">Cari</button>
+    </form>
+
+    {% if query %}
+    <p class="search-result-info">Ditemukan <strong>{{ total }}</strong> artikel untuk "<em>{{ query }}</em>"</p>
+
+    {% if articles %}
+    <div class="category-grid">
+      {% for article in articles %}
+      <a href="/artikel/{{ article.slug }}" class="card card-vertical">
+        <div class="card-image">
+          <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy" />
+          {% if article.category in categories %}
+          <span class="card-badge" style="background: {{ categories[article.category].color }}"> {{ categories[article.category].label }} </span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+          <h3 class="card-title">{{ article.title }}</h3>
+          <p class="card-excerpt">{{ article.excerpt[:150] }}...</p>
+          <span class="card-time">{{ time_ago(article.created_at) }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p class="empty-icon">🔍</p>
+      <h2>Tidak Ditemukan</h2>
+      <p>Tidak ada artikel yang cocok dengan pencarian Anda.</p>
+    </div>
+    {% endif %} {% endif %}
+  </div>
 </div>
 {% endblock %}

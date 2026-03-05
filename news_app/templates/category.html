@@ -1,92 +1,76 @@
-{% extends "base.html" %}
-
-{% block meta_description %}Berita {{ cat_info.label }} terkini. Update harian dari CikalNews.{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block meta_description %}Berita {{ cat_info.label }} terkini. Update harian dari CikalNews.{% endblock %} {% block content %}
 <div class="home-layout">
-    <div class="home-main">
-
-        <!-- Category Header -->
-        <div class="page-header" style="border-color: {{ cat_info.color }}">
-            <h1 class="page-title">{{ cat_info.icon }} {{ cat_info.label }}</h1>
-            <p class="page-subtitle">{{ total }} artikel ditemukan</p>
-        </div>
-
-        <!-- Articles Grid -->
-        {% if articles %}
-        <div class="category-grid">
-            {% for article in articles %}
-            <a href="/artikel/{{ article.slug }}" class="card card-vertical">
-                <div class="card-image">
-                    <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy">
-                    <span class="card-badge" style="background: {{ cat_info.color }}">{{ cat_info.label }}</span>
-                </div>
-                <div class="card-body">
-                    <h3 class="card-title">{{ article.title }}</h3>
-                    <p class="card-excerpt">{{ article.excerpt[:150] }}...</p>
-                    <div class="card-meta">
-                        <span class="card-time">{{ time_ago(article.created_at) }}</span>
-                        <span class="card-views">👁 {{ article.views or 0 }}</span>
-                    </div>
-                </div>
-            </a>
-            {% endfor %}
-        </div>
-
-        <!-- Pagination -->
-        {% if total_pages > 1 %}
-        <div class="pagination">
-            {% if page > 1 %}
-            <a href="/kategori/{{ category }}?page={{ page - 1 }}" class="page-btn">← Sebelumnya</a>
-            {% endif %}
-
-            {% for p in range(1, total_pages + 1) %}
-                {% if p == page %}
-                <span class="page-btn active">{{ p }}</span>
-                {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
-                <a href="/kategori/{{ category }}?page={{ p }}" class="page-btn">{{ p }}</a>
-                {% elif p == 4 or p == total_pages - 3 %}
-                <span class="page-dots">...</span>
-                {% endif %}
-            {% endfor %}
-
-            {% if page < total_pages %}
-            <a href="/kategori/{{ category }}?page={{ page + 1 }}" class="page-btn">Selanjutnya →</a>
-            {% endif %}
-        </div>
-        {% endif %}
-
-        {% else %}
-        <div class="empty-state">
-            <p class="empty-icon">📰</p>
-            <h2>Belum Ada Artikel</h2>
-            <p>Artikel untuk kategori {{ cat_info.label }} akan segera hadir.</p>
-            <a href="/" class="btn-primary">← Kembali ke Beranda</a>
-        </div>
-        {% endif %}
-
+  <div class="home-main">
+    <!-- Category Header -->
+    <div class="page-header" style="border-color: {{ cat_info.color }}">
+      <h1 class="page-title">{{ cat_info.icon }} {{ cat_info.label }}</h1>
+      <p class="page-subtitle">{{ total }} artikel ditemukan</p>
     </div>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-widget">
-            <h3 class="widget-title">🔥 Trending</h3>
-            <ol class="trending-list">
-                {% for item in trending %}
-                <li>
-                    <a href="/artikel/{{ item.slug }}" class="trending-link">
-                        <span class="trending-num">{{ loop.index }}</span>
-                        <div class="trending-info">
-                            <span class="trending-cat" style="color: {{ categories[item.category].color if item.category in categories else '#666' }}">
-                                {{ categories[item.category].label if item.category in categories else item.category }}
-                            </span>
-                            <p class="trending-title">{{ item.title }}</p>
-                        </div>
-                    </a>
-                </li>
-                {% endfor %}
-            </ol>
+    <!-- Articles Grid -->
+    {% if articles %}
+    <div class="category-grid">
+      {% for article in articles %}
+      <a href="/artikel/{{ article.slug }}" class="card card-vertical">
+        <div class="card-image">
+          <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy" />
+          <span class="card-badge" style="background: {{ cat_info.color }}">{{ cat_info.label }}</span>
         </div>
-    </aside>
+        <div class="card-body">
+          <h3 class="card-title">{{ article.title }}</h3>
+          <p class="card-excerpt">{{ article.excerpt[:150] }}...</p>
+          <div class="card-meta">
+            <span class="card-time">{{ time_ago(article.created_at) }}</span>
+            <span class="card-views">👁 {{ article.views or 0 }}</span>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+      {% if page > 1 %}
+      <a href="/kategori/{{ category }}?page={{ page - 1 }}" class="page-btn">← Sebelumnya</a>
+      {% endif %} {% for p in range(1, total_pages + 1) %} {% if p == page %}
+      <span class="page-btn active">{{ p }}</span>
+      {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+      <a href="/kategori/{{ category }}?page={{ p }}" class="page-btn">{{ p }}</a>
+      {% elif p == 4 or p == total_pages - 3 %}
+      <span class="page-dots">...</span>
+      {% endif %} {% endfor %} {% if page < total_pages %}
+      <a href="/kategori/{{ category }}?page={{ page + 1 }}" class="page-btn">Selanjutnya →</a>
+      {% endif %}
+    </div>
+    {% endif %} {% else %}
+    <div class="empty-state">
+      <p class="empty-icon">📰</p>
+      <h2>Belum Ada Artikel</h2>
+      <p>Artikel untuk kategori {{ cat_info.label }} akan segera hadir.</p>
+      <a href="/" class="btn-primary">← Kembali ke Beranda</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-widget">
+      <h3 class="widget-title">🔥 Trending</h3>
+      <ol class="trending-list">
+        {% for item in trending %}
+        <li>
+          <a href="/artikel/{{ item.slug }}" class="trending-link">
+            <span class="trending-num">{{ loop.index }}</span>
+            <div class="trending-info">
+              <span class="trending-cat" style="color: {{ categories[item.category].color if item.category in categories else '#666' }}"> {{ categories[item.category].label if item.category in categories else item.category }} </span>
+              <p class="trending-title">{{ item.title }}</p>
+            </div>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </aside>
 </div>
 {% endblock %}

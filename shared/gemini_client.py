@@ -6,6 +6,7 @@ Uses the new google.genai SDK.
 """
 
 import asyncio
+import re
 import time
 from typing import Optional, Dict, Any, List
 
@@ -20,10 +21,11 @@ from shared.config import settings
 class GeminiClient:
     """Wrapper around Google GenAI SDK with rate limiting and model fallback."""
 
-    # Fallback models if primary is unavailable (503)
+    # Fallback models if primary is unavailable or rate-limited
+    # Each model has its own separate daily quota on free tier
     FALLBACK_MODELS = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash-001",
     ]
 
     def __init__(self):
@@ -32,6 +34,8 @@ class GeminiClient:
         self._last_request_time = 0.0
         self._request_interval = 60.0 / settings.gemini.rpm_limit  # seconds between requests
         self._lock = asyncio.Lock()
+        # Track per-model exhaustion so we skip exhausted models
+        self._exhausted_models: Dict[str, float] = {}  # model -> retry_after_timestamp
 
     async def _rate_limit(self):
         """Enforce rate limiting (RPM)."""
@@ -44,20 +48,43 @@ class GeminiClient:
                 await asyncio.sleep(wait_time)
             self._last_request_time = time.time()
 
-    @retry(stop=stop_after_attempt(5), wait=wait_exponential(min=10, max=120))
+    def _parse_retry_delay(self, err_str: str) -> float:
+        """Extract retry delay (seconds) from a 429 error message."""
+        # Pattern: "Please retry in 52.112394788s"
+        match = re.search(r"retry in (\d+(?:\.\d+)?)s", err_str)
+        if match:
+            return float(match.group(1))
+        return 60.0  # default 60s if can't parse
+
+    def _is_model_exhausted(self, model: str) -> bool:
+        """Check if a model's daily quota is exhausted."""
+        if model not in self._exhausted_models:
+            return False
+        return time.time() < self._exhausted_models[model]
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=15, max=120))
     async def generate(
         self,
         prompt: str,
         system_instruction: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> str:
-        """Generate text from a prompt. Tries fallback models on 503."""
+        """Generate text from a prompt. Tries fallback models on 503 or 429 quota exhaustion."""
         await self._rate_limit()
 
-        # Build list of models to try: primary + fallbacks
-        models_to_try = [self.model_name] + [
+        # Build list of models to try: primary + fallbacks, skip exhausted ones
+        all_models = [self.model_name] + [
             m for m in self.FALLBACK_MODELS if m != self.model_name
         ]
+        models_to_try = [m for m in all_models if not self._is_model_exhausted(m)]
+
+        if not models_to_try:
+            # All models exhausted — find the one with shortest wait
+            soonest_model = min(self._exhausted_models, key=self._exhausted_models.get)
+            wait_secs = max(0, self._exhausted_models[soonest_model] - time.time())
+            logger.warning(f"All models exhausted. Waiting {wait_secs:.0f}s for {soonest_model}...")
+            await asyncio.sleep(wait_secs + 5)
+            models_to_try = [soonest_model]
 
         config = types.GenerateContentConfig(
             max_output_tokens=settings.gemini.max_output_tokens,
@@ -87,15 +114,41 @@ class GeminiClient:
             except Exception as e:
                 err_str = str(e)
                 last_error = e
+
                 if "503" in err_str or "UNAVAILABLE" in err_str:
                     logger.warning(f"Model {model} unavailable (503), trying next...")
                     continue
+
+                elif "404" in err_str or "NOT_FOUND" in err_str:
+                    logger.warning(f"Model {model} not found (404), trying next...")
+                    # Permanently skip this model
+                    self._exhausted_models[model] = time.time() + 86400
+                    continue
+
+                elif "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                    retry_delay = self._parse_retry_delay(err_str)
+
+                    # Check if it's a daily quota limit (not just per-minute)
+                    if "PerDay" in err_str or "per_day" in err_str or retry_delay > 30:
+                        # Daily quota exhausted — mark model and try fallback
+                        self._exhausted_models[model] = time.time() + max(retry_delay, 60)
+                        logger.warning(
+                            f"Model {model} daily quota exhausted. "
+                            f"Blocked for {retry_delay:.0f}s. Trying fallback..."
+                        )
+                        continue
+                    else:
+                        # Short rate limit — wait and retry same model
+                        logger.info(f"Rate limited on {model}, waiting {retry_delay:.0f}s...")
+                        await asyncio.sleep(retry_delay + 2)
+                        continue
+
                 else:
                     logger.error(f"Gemini API error ({model}): {e}")
                     raise
 
-        # All models failed with 503
-        logger.error(f"All models unavailable: {last_error}")
+        # All models failed
+        logger.error(f"All models failed: {last_error}")
         raise last_error
 
     async def generate_json(

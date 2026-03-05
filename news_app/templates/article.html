@@ -1,120 +1,103 @@
-{% extends "base.html" %}
-
-{% block meta_description %}{{ article.meta_description or article.excerpt[:160] }}{% endblock %}
-{% block og_type %}article{% endblock %}
-{% block og_image %}{{ article.thumbnail_url }}{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block meta_description %}{{ article.meta_description or article.excerpt[:160] }}{% endblock %} {% block og_type %}article{% endblock %} {% block og_image %}{{ article.thumbnail_url }}{% endblock %} {% block
+content %}
 <div class="home-layout">
-    <div class="home-main">
+  <div class="home-main">
+    <article class="article-detail">
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb">
+        <a href="/">Beranda</a>
+        <span>›</span>
+        <a href="/kategori/{{ article.category }}">{{ cat_info.label if cat_info else article.category }}</a>
+        <span>›</span>
+        <span class="current">Artikel</span>
+      </nav>
 
-        <article class="article-detail">
-            <!-- Breadcrumb -->
-            <nav class="breadcrumb">
-                <a href="/">Beranda</a>
-                <span>›</span>
-                <a href="/kategori/{{ article.category }}">{{ cat_info.label if cat_info else article.category }}</a>
-                <span>›</span>
-                <span class="current">Artikel</span>
-            </nav>
-
-            <!-- Article Header -->
-            <header class="article-header">
-                <span class="article-cat-badge" style="background: {{ cat_info.color if cat_info else '#333' }}">
-                    {{ cat_info.icon if cat_info else '📰' }} {{ cat_info.label if cat_info else article.category }}
-                </span>
-                <h1 class="article-title">{{ article.title }}</h1>
-                <div class="article-meta">
-                    <span class="meta-time">📅 {{ format_date(article.created_at) }}</span>
-                    <span class="meta-views">👁 {{ article.views or 0 }} kali dibaca</span>
-                    {% if article.source_name %}
-                    <span class="meta-source">Sumber inspirasi: {{ article.source_name }}</span>
-                    {% endif %}
-                </div>
-            </header>
-
-            <!-- Featured Image -->
-            {% if article.thumbnail_url %}
-            <div class="article-hero-image">
-                <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="eager">
-            </div>
-            {% endif %}
-
-            <!-- Excerpt -->
-            <div class="article-excerpt">
-                <p><strong>{{ article.excerpt }}</strong></p>
-            </div>
-
-            <!-- Article Content -->
-            <div class="article-content">
-                {{ article.content | safe }}
-            </div>
-
-            <!-- Tags -->
-            {% if tags %}
-            <div class="article-tags">
-                <span class="tags-label">Tags:</span>
-                {% for tag in tags %}
-                <a href="/cari?q={{ tag }}" class="tag">{{ tag }}</a>
-                {% endfor %}
-            </div>
-            {% endif %}
-
-            <!-- Share -->
-            <div class="article-share">
-                <span class="share-label">Bagikan:</span>
-                <a href="https://twitter.com/intent/tweet?text={{ article.title | urlencode }}&url={{ request.url }}" 
-                   target="_blank" class="share-btn share-twitter">Twitter</a>
-                <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" 
-                   target="_blank" class="share-btn share-facebook">Facebook</a>
-                <a href="https://api.whatsapp.com/send?text={{ article.title | urlencode }}%20{{ request.url }}" 
-                   target="_blank" class="share-btn share-whatsapp">WhatsApp</a>
-                <a href="https://t.me/share/url?url={{ request.url }}&text={{ article.title | urlencode }}" 
-                   target="_blank" class="share-btn share-telegram">Telegram</a>
-            </div>
-        </article>
-
-        <!-- Related Articles -->
-        {% if related %}
-        <section class="related-section">
-            <h2 class="section-title" style="border-color: {{ cat_info.color if cat_info else '#333' }}">
-                📖 Artikel Terkait
-            </h2>
-            <div class="related-grid">
-                {% for item in related %}
-                <a href="/artikel/{{ item.slug }}" class="card card-vertical">
-                    <div class="card-image">
-                        <img src="{{ item.thumbnail_url }}" alt="{{ item.title }}" loading="lazy">
-                    </div>
-                    <div class="card-body">
-                        <h3 class="card-title">{{ item.title }}</h3>
-                        <span class="card-time">{{ time_ago(item.created_at) }}</span>
-                    </div>
-                </a>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
-
-    </div>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-widget">
-            <h3 class="widget-title">🔥 Trending</h3>
-            <ol class="trending-list">
-                {% for item in trending if trending is defined %}
-                <li>
-                    <a href="/artikel/{{ item.slug }}" class="trending-link">
-                        <span class="trending-num">{{ loop.index }}</span>
-                        <div class="trending-info">
-                            <p class="trending-title">{{ item.title }}</p>
-                        </div>
-                    </a>
-                </li>
-                {% endfor %}
-            </ol>
+      <!-- Article Header -->
+      <header class="article-header">
+        <span class="article-cat-badge" style="background: {{ cat_info.color if cat_info else '#333' }}"> {{ cat_info.icon if cat_info else '📰' }} {{ cat_info.label if cat_info else article.category }} </span>
+        <h1 class="article-title">{{ article.title }}</h1>
+        <div class="article-meta">
+          <span class="meta-time">📅 {{ format_date(article.created_at) }}</span>
+          <span class="meta-views">👁 {{ article.views or 0 }} kali dibaca</span>
+          {% if article.source_name %}
+          <span class="meta-source">Sumber inspirasi: {{ article.source_name }}</span>
+          {% endif %}
         </div>
-    </aside>
+      </header>
+
+      <!-- Featured Image -->
+      {% if article.thumbnail_url %}
+      <div class="article-hero-image">
+        <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="eager" />
+      </div>
+      {% endif %}
+
+      <!-- Excerpt -->
+      <div class="article-excerpt">
+        <p><strong>{{ article.excerpt }}</strong></p>
+      </div>
+
+      <!-- Article Content -->
+      <div class="article-content">{{ article.content | safe }}</div>
+
+      <!-- Tags -->
+      {% if tags %}
+      <div class="article-tags">
+        <span class="tags-label">Tags:</span>
+        {% for tag in tags %}
+        <a href="/cari?q={{ tag }}" class="tag">{{ tag }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Share -->
+      <div class="article-share">
+        <span class="share-label">Bagikan:</span>
+        <a href="https://twitter.com/intent/tweet?text={{ article.title | urlencode }}&url={{ request.url }}" target="_blank" class="share-btn share-twitter">Twitter</a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank" class="share-btn share-facebook">Facebook</a>
+        <a href="https://api.whatsapp.com/send?text={{ article.title | urlencode }}%20{{ request.url }}" target="_blank" class="share-btn share-whatsapp">WhatsApp</a>
+        <a href="https://t.me/share/url?url={{ request.url }}&text={{ article.title | urlencode }}" target="_blank" class="share-btn share-telegram">Telegram</a>
+      </div>
+    </article>
+
+    <!-- Related Articles -->
+    {% if related %}
+    <section class="related-section">
+      <h2 class="section-title" style="border-color: {{ cat_info.color if cat_info else '#333' }}">📖 Artikel Terkait</h2>
+      <div class="related-grid">
+        {% for item in related %}
+        <a href="/artikel/{{ item.slug }}" class="card card-vertical">
+          <div class="card-image">
+            <img src="{{ item.thumbnail_url }}" alt="{{ item.title }}" loading="lazy" />
+          </div>
+          <div class="card-body">
+            <h3 class="card-title">{{ item.title }}</h3>
+            <span class="card-time">{{ time_ago(item.created_at) }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-widget">
+      <h3 class="widget-title">🔥 Trending</h3>
+      <ol class="trending-list">
+        {% for item in trending if trending is defined %}
+        <li>
+          <a href="/artikel/{{ item.slug }}" class="trending-link">
+            <span class="trending-num">{{ loop.index }}</span>
+            <div class="trending-info">
+              <p class="trending-title">{{ item.title }}</p>
+            </div>
+          </a>
+        </li>
+        {% endfor %}
+      </ol>
+    </div>
+  </aside>
 </div>
 {% endblock %}

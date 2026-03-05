@@ -69,14 +69,14 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 article_id = await save_news_article(article)
                 if article_id:
                     generated += 1
-                    logger.info(f"[rekomendasi] Saved: {article['title']}")
+                    logger.info(f"[rekomendasi] ✅ Saved: {article['title']}")
 
-                # Respect Gemini rate limit (15 RPM)
-                await asyncio.sleep(8)
+                # Wait between articles to respect rate limits (3 models × 20 req/day = 60 total)
+                await asyncio.sleep(15)
 
             except Exception as e:
                 logger.error(f"[rekomendasi] Failed '{topic}': {e}")
-                await asyncio.sleep(5)
+                await asyncio.sleep(20)
     else:
         # Get trending topics from RSS + Google News
         headlines = await get_trending_topics(category, count=max_articles * 2)
@@ -102,14 +102,14 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 article_id = await save_news_article(article)
                 if article_id:
                     generated += 1
-                    logger.info(f"[{category}] Saved: {article['title']}")
+                    logger.info(f"[{category}] ✅ Saved: {article['title']}")
 
-                # Respect Gemini rate limit
-                await asyncio.sleep(8)
+                # Wait between articles
+                await asyncio.sleep(15)
 
             except Exception as e:
                 logger.error(f"[{category}] Failed: {e}")
-                await asyncio.sleep(5)
+                await asyncio.sleep(20)
 
     logger.info(f"[{category}] Generated {generated} articles")
     return generated
@@ -135,8 +135,10 @@ async def run_news_pipeline(categories: List[str] = None, articles_per_cat: int 
         generated = await generate_article_for_category(cat, max_articles=count)
         total += generated
 
-        # Pause between categories to avoid rate limits
-        await asyncio.sleep(5)
+        # Pause between categories to spread out API usage
+        if cat != categories[-1]:
+            logger.info(f"⏳ Waiting 30s before next category...")
+            await asyncio.sleep(30)
 
     elapsed = (datetime.utcnow() - start).total_seconds()
     logger.info(f"✅ Pipeline complete! Generated {total} articles in {elapsed:.0f}s")
