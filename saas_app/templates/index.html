@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Writing Tools - Free AI Resume, Caption & Email Generator</title>
+    <meta name="description" content="Free AI-powered writing tools: Resume Builder, Social Media Caption Generator, and Email Writer. Powered by advanced AI." />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        color: #e0e0e0;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      /* Header */
+      header {
+        text-align: center;
+        padding: 60px 20px 40px;
+      }
+      h1 {
+        font-size: 3rem;
+        background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+      }
+      .subtitle {
+        font-size: 1.2rem;
+        color: #a0a0a0;
+        margin-bottom: 30px;
+      }
+      .badge {
+        display: inline-block;
+        background: rgba(123, 47, 247, 0.2);
+        border: 1px solid #7b2ff7;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        color: #b388ff;
+      }
+
+      /* Tool Cards */
+      .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        gap: 30px;
+        padding: 40px 0;
+      }
+      .tool-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 40px 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+      }
+      .tool-card:hover {
+        transform: translateY(-5px);
+        border-color: #7b2ff7;
+        box-shadow: 0 20px 40px rgba(123, 47, 247, 0.2);
+      }
+      .tool-icon {
+        font-size: 3.5rem;
+        margin-bottom: 20px;
+      }
+      .tool-card h2 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        color: #fff;
+      }
+      .tool-card p {
+        color: #a0a0a0;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      .tool-cta {
+        display: inline-block;
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        padding: 10px 30px;
+        border-radius: 25px;
+        color: white;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      /* Features */
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        padding: 40px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .feature {
+        text-align: center;
+        padding: 20px;
+      }
+      .feature-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+      }
+      .feature h3 {
+        margin-bottom: 5px;
+        color: #fff;
+      }
+      .feature p {
+        color: #888;
+        font-size: 0.9rem;
+      }
+
+      /* Pricing */
+      .pricing {
+        text-align: center;
+        padding: 60px 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .pricing h2 {
+        font-size: 2rem;
+        margin-bottom: 30px;
+        color: #fff;
+      }
+      .pricing-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+      .price-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 30px;
+      }
+      .price-card.pro {
+        border-color: #7b2ff7;
+        position: relative;
+      }
+      .price-card.pro::before {
+        content: "POPULAR";
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #7b2ff7;
+        padding: 3px 15px;
+        border-radius: 10px;
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+      .price {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #fff;
+      }
+      .price span {
+        font-size: 1rem;
+        color: #888;
+      }
+      .price-features {
+        list-style: none;
+        margin: 20px 0;
+        text-align: left;
+      }
+      .price-features li {
+        padding: 8px 0;
+        color: #ccc;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .price-features li::before {
+        content: "✓ ";
+        color: #00d2ff;
+      }
+      .price-btn {
+        display: block;
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        text-align: center;
+      }
+      .price-btn.free {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .price-btn.paid {
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        color: #fff;
+      }
+
+      /* Footer */
+      footer {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-size: 0.85rem;
+      }
+
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2rem;
+        }
+        .tools-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>AI Writing Tools</h1>
+        <p class="subtitle">Professional-grade AI writing tools — completely free to use</p>
+        <span class="badge">✨ Powered by Advanced AI • 3 Free Uses/Day</span>
+      </header>
+
+      <div class="tools-grid">
+        <a href="/resume" class="tool-card">
+          <div class="tool-icon">📄</div>
+          <h2>AI Resume Builder</h2>
+          <p>Generate a professional, ATS-optimized resume in seconds. Just enter your details and get a polished CV ready to send to employers.</p>
+          <span class="tool-cta">Build My Resume →</span>
+        </a>
+
+        <a href="/captions" class="tool-card">
+          <div class="tool-icon">📱</div>
+          <h2>Caption Generator</h2>
+          <p>Generate up to 30 engaging social media captions instantly. Perfect for Instagram, Twitter, LinkedIn, and TikTok.</p>
+          <span class="tool-cta">Generate Captions →</span>
+        </a>
+
+        <a href="/email" class="tool-card">
+          <div class="tool-icon">✉️</div>
+          <h2>AI Email Writer</h2>
+          <p>Write professional emails in seconds. Get 3 versions (short, medium, detailed) for any purpose — job apps, follow-ups, proposals.</p>
+          <span class="tool-cta">Write Email →</span>
+        </a>
+      </div>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">⚡</div>
+          <h3>Instant Results</h3>
+          <p>Get professional content in under 10 seconds</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🌍</div>
+          <h3>Bilingual</h3>
+          <p>Supports English and Bahasa Indonesia</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔒</div>
+          <h3>Privacy First</h3>
+          <p>Your data is never stored or shared</p>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">💳</div>
+          <h3>Free to Start</h3>
+          <p>3 free uses per day, no sign-up required</p>
+        </div>
+      </div>
+
+      <div class="pricing">
+        <h2>Simple Pricing</h2>
+        <div class="pricing-cards">
+          <div class="price-card">
+            <div class="price">Free</div>
+            <ul class="price-features">
+              <li>3 uses per day</li>
+              <li>All 3 tools included</li>
+              <li>English & Indonesian</li>
+              <li>Standard quality</li>
+            </ul>
+            <a href="#tools" class="price-btn free">Get Started Free</a>
+          </div>
+          <div class="price-card pro">
+            <div class="price">$5<span>/month</span></div>
+            <ul class="price-features">
+              <li>Unlimited uses</li>
+              <li>All 3 tools included</li>
+              <li>Priority AI processing</li>
+              <li>Export to PDF/DOCX</li>
+              <li>Email support</li>
+            </ul>
+            <a href="#" class="price-btn paid" id="upgradeBtn">Upgrade to Pro</a>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>© 2026 AI Writing Tools. Built with ❤️ and AI.</p>
+      </footer>
+    </div>
+  </body>
+</html>

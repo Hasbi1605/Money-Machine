@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Resume Builder - Free Professional CV Generator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        color: #e0e0e0;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      nav {
+        padding: 20px 0;
+      }
+      nav a {
+        color: #7b2ff7;
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      h1 {
+        font-size: 2rem;
+        margin: 20px 0 10px;
+        color: #fff;
+      }
+      .desc {
+        color: #888;
+        margin-bottom: 30px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #ccc;
+        font-size: 0.9rem;
+      }
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 1rem;
+        font-family: inherit;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #7b2ff7;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+      select option {
+        background: #1a1a2e;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+
+      .btn {
+        display: inline-block;
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        padding: 14px 40px;
+        border: none;
+        border-radius: 25px;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+        transition: opacity 0.3s;
+      }
+      .btn:hover {
+        opacity: 0.9;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .result {
+        margin-top: 30px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 30px;
+        display: none;
+      }
+      .result h2 {
+        color: #00d2ff;
+        margin-bottom: 15px;
+      }
+      .result-content {
+        white-space: pre-wrap;
+        line-height: 1.6;
+      }
+      .copy-btn {
+        background: rgba(123, 47, 247, 0.3);
+        border: 1px solid #7b2ff7;
+        padding: 8px 20px;
+        border-radius: 8px;
+        color: #b388ff;
+        cursor: pointer;
+        margin-top: 15px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        display: none;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #7b2ff7;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 15px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .error {
+        color: #ff6b6b;
+        margin-top: 10px;
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav><a href="/">← Back to Tools</a></nav>
+      <h1>📄 AI Resume Builder</h1>
+      <p class="desc">Generate a professional, ATS-optimized resume in seconds.</p>
+
+      <form id="resumeForm">
+        <div class="row">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="name" required placeholder="John Doe" />
+          </div>
+          <div class="form-group">
+            <label>Target Position *</label>
+            <input type="text" id="title" required placeholder="Senior Software Engineer" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Work Experience *</label>
+          <textarea id="experience" required placeholder="Describe your work history. Example: 5 years as a web developer at TechCorp, built e-commerce platforms, managed a team of 3 developers..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Skills *</label>
+          <textarea id="skills" required placeholder="Python, JavaScript, React, Project Management, Team Leadership, Agile, SQL..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Education</label>
+          <input type="text" id="education" placeholder="Bachelor of Computer Science, MIT, 2018" />
+        </div>
+
+        <div class="form-group">
+          <label>Language</label>
+          <select id="language">
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">✨ Generate Resume</button>
+        <p class="error" id="error"></p>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>AI is crafting your professional resume...</p>
+      </div>
+
+      <div class="result" id="result">
+        <h2>Your AI-Generated Resume</h2>
+        <div class="result-content" id="resultContent"></div>
+        <button class="copy-btn" onclick="copyResult()">📋 Copy to Clipboard</button>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("resumeForm");
+      const loading = document.getElementById("loading");
+      const result = document.getElementById("result");
+      const error = document.getElementById("error");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const btn = document.getElementById("submitBtn");
+        btn.disabled = true;
+        loading.style.display = "block";
+        result.style.display = "none";
+        error.style.display = "none";
+
+        const data = {
+          name: document.getElementById("name").value,
+          title: document.getElementById("title").value,
+          experience: document.getElementById("experience").value,
+          skills: document.getElementById("skills").value,
+          education: document.getElementById("education").value,
+          language: document.getElementById("language").value,
+        };
+
+        try {
+          const resp = await fetch("/api/resume", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+          });
+
+          if (resp.status === 429) {
+            throw new Error("Daily limit reached! Upgrade to Pro for unlimited access.");
+          }
+          if (!resp.ok) throw new Error("Generation failed. Please try again.");
+
+          const json = await resp.json();
+          const content = json.data.full_text || JSON.stringify(json.data, null, 2);
+          document.getElementById("resultContent").textContent = content;
+          result.style.display = "block";
+        } catch (err) {
+          error.textContent = err.message;
+          error.style.display = "block";
+        } finally {
+          btn.disabled = false;
+          loading.style.display = "none";
+        }
+      });
+
+      function copyResult() {
+        const text = document.getElementById("resultContent").textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.querySelector(".copy-btn");
+          btn.textContent = "✅ Copied!";
+          setTimeout(() => (btn.textContent = "📋 Copy to Clipboard"), 2000);
+        });
+      }
+    </script>
+  </body>
+</html>

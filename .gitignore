@@ -1,0 +1,25 @@
+# AI Money Machine
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv/
+venv/
+ENV/
+*.egg-info/
+dist/
+build/
+.eggs/
+*.db
+*.sqlite3
+output/
+logs/
+*.mp4
+*.mp3
+*.wav
+credentials/
+token.json
+*.pickle
+.DS_Store

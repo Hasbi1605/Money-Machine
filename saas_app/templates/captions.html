@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Caption Generator - Free Social Media Captions</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        color: #e0e0e0;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      nav {
+        padding: 20px 0;
+      }
+      nav a {
+        color: #7b2ff7;
+        text-decoration: none;
+      }
+      h1 {
+        font-size: 2rem;
+        margin: 20px 0 10px;
+        color: #fff;
+      }
+      .desc {
+        color: #888;
+        margin-bottom: 30px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #ccc;
+        font-size: 0.9rem;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 1rem;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #7b2ff7;
+      }
+      select option {
+        background: #1a1a2e;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 15px;
+      }
+      .btn {
+        display: inline-block;
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        padding: 14px 40px;
+        border: none;
+        border-radius: 25px;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .captions-list {
+        margin-top: 30px;
+        display: none;
+      }
+      .caption-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+        position: relative;
+      }
+      .caption-card p {
+        line-height: 1.6;
+        margin-bottom: 10px;
+      }
+      .hashtags {
+        color: #7b2ff7;
+        font-size: 0.85rem;
+      }
+      .caption-copy {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(123, 47, 247, 0.3);
+        border: none;
+        padding: 5px 12px;
+        border-radius: 6px;
+        color: #b388ff;
+        cursor: pointer;
+        font-size: 0.8rem;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        display: none;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #7b2ff7;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 15px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .error {
+        color: #ff6b6b;
+        margin-top: 10px;
+        display: none;
+      }
+      @media (max-width: 768px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav><a href="/">← Back to Tools</a></nav>
+      <h1>📱 AI Caption Generator</h1>
+      <p class="desc">Generate engaging social media captions instantly. Up to 30 at once!</p>
+
+      <form id="captionForm">
+        <div class="form-group">
+          <label>Topic / Content Description *</label>
+          <input type="text" id="topic" required placeholder="e.g., Morning coffee routine, New product launch, Travel to Bali..." />
+        </div>
+
+        <div class="row">
+          <div class="form-group">
+            <label>Platform</label>
+            <select id="platform">
+              <option value="instagram">Instagram</option>
+              <option value="twitter">Twitter/X</option>
+              <option value="linkedin">LinkedIn</option>
+              <option value="tiktok">TikTok</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Tone</label>
+            <select id="tone">
+              <option value="professional">Professional</option>
+              <option value="casual">Casual</option>
+              <option value="funny">Funny</option>
+              <option value="motivational">Motivational</option>
+              <option value="informative">Informative</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Count</label>
+            <select id="count">
+              <option value="5">5 captions</option>
+              <option value="10" selected>10 captions</option>
+              <option value="20">20 captions</option>
+              <option value="30">30 captions</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Language</label>
+          <select id="language">
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">✨ Generate Captions</button>
+        <p class="error" id="error"></p>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>AI is generating your captions...</p>
+      </div>
+
+      <div class="captions-list" id="captionsList"></div>
+    </div>
+
+    <script>
+      document.getElementById("captionForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("submitBtn");
+        const loading = document.getElementById("loading");
+        const list = document.getElementById("captionsList");
+        const error = document.getElementById("error");
+
+        btn.disabled = true;
+        loading.style.display = "block";
+        list.style.display = "none";
+        error.style.display = "none";
+
+        try {
+          const resp = await fetch("/api/captions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topic: document.getElementById("topic").value,
+              platform: document.getElementById("platform").value,
+              tone: document.getElementById("tone").value,
+              count: parseInt(document.getElementById("count").value),
+              language: document.getElementById("language").value,
+            }),
+          });
+
+          if (resp.status === 429) throw new Error("Daily limit reached! Upgrade to Pro.");
+          if (!resp.ok) throw new Error("Generation failed. Please try again.");
+
+          const json = await resp.json();
+          const captions = json.data;
+
+          list.innerHTML = `<h2 style="color:#fff;margin-bottom:20px;">Generated ${captions.length} Captions</h2>`;
+          captions.forEach((item, i) => {
+            const caption = item.caption || item;
+            const hashtags = item.hashtags ? item.hashtags.join(" ") : "";
+            list.innerHTML += `
+                        <div class="caption-card">
+                            <button class="caption-copy" onclick="copyCaption(this, ${i})">Copy</button>
+                            <p id="caption-${i}">${caption}</p>
+                            ${hashtags ? `<div class="hashtags">${hashtags}</div>` : ""}
+                        </div>
+                    `;
+          });
+          list.style.display = "block";
+        } catch (err) {
+          error.textContent = err.message;
+          error.style.display = "block";
+        } finally {
+          btn.disabled = false;
+          loading.style.display = "none";
+        }
+      });
+
+      function copyCaption(btn, i) {
+        const text = document.getElementById(`caption-${i}`).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+          btn.textContent = "✅";
+          setTimeout(() => (btn.textContent = "Copy"), 1500);
+        });
+      }
+    </script>
+  </body>
+</html>

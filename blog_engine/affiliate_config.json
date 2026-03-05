@@ -1,0 +1,37 @@
+{
+  "programs": {
+    "amazon": {
+      "name": "Amazon Associates",
+      "base_url": "https://www.amazon.com/dp/",
+      "tag_param": "tag",
+      "tag": "",
+      "categories": ["electronics", "home", "kitchen", "fitness", "office", "books"],
+      "cta_templates_en": ["Check the latest price on Amazon", "See current deals on Amazon", "View on Amazon", "Buy on Amazon"],
+      "cta_templates_id": ["Cek harga terbaru di Amazon", "Lihat penawaran di Amazon"]
+    },
+    "tokopedia": {
+      "name": "Tokopedia Affiliate",
+      "base_url": "https://www.tokopedia.com/find/",
+      "tag_param": "src",
+      "tag": "",
+      "categories": ["elektronik", "rumah tangga", "fashion", "kesehatan", "gadget"],
+      "cta_templates_id": ["Cek harga di Tokopedia", "Beli di Tokopedia", "Lihat produk di Tokopedia", "Bandingkan harga di Tokopedia"]
+    },
+    "shopee": {
+      "name": "Shopee Affiliate",
+      "base_url": "https://shopee.co.id/search?keyword=",
+      "tag_param": "af_sub",
+      "tag": "",
+      "categories": ["elektronik", "fashion", "kecantikan", "rumah", "gadget"],
+      "cta_templates_id": ["Cek harga di Shopee", "Beli di Shopee dengan gratis ongkir", "Lihat flash sale di Shopee"]
+    }
+  },
+  "default_programs": {
+    "en": ["amazon"],
+    "id": ["tokopedia", "shopee"]
+  },
+  "disclosure": {
+    "en": "**Disclosure:** This article contains affiliate links. If you purchase through these links, we may earn a small commission at no extra cost to you. This helps support our content creation.",
+    "id": "**Disclaimer:** Artikel ini mengandung link afiliasi. Jika Anda membeli melalui link ini, kami mungkin mendapat komisi kecil tanpa biaya tambahan untuk Anda. Ini membantu mendukung pembuatan konten kami."
+  }
+}

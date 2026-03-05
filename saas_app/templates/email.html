@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Email Writer - Free Professional Email Generator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        color: #e0e0e0;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      nav {
+        padding: 20px 0;
+      }
+      nav a {
+        color: #7b2ff7;
+        text-decoration: none;
+      }
+      h1 {
+        font-size: 2rem;
+        margin: 20px 0 10px;
+        color: #fff;
+      }
+      .desc {
+        color: #888;
+        margin-bottom: 30px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #ccc;
+        font-size: 0.9rem;
+      }
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 12px 16px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        color: #fff;
+        font-size: 1rem;
+        font-family: inherit;
+      }
+      input:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #7b2ff7;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+      select option {
+        background: #1a1a2e;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+      .btn {
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        padding: 14px 40px;
+        border: none;
+        border-radius: 25px;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        margin-top: 10px;
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+      .results {
+        margin-top: 30px;
+        display: none;
+      }
+      .subject-line {
+        background: rgba(0, 210, 255, 0.1);
+        border: 1px solid rgba(0, 210, 255, 0.3);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+      .subject-line h3 {
+        color: #00d2ff;
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+      }
+      .version-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .tab {
+        padding: 8px 20px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        color: #ccc;
+        font-size: 0.9rem;
+      }
+      .tab.active {
+        background: rgba(123, 47, 247, 0.3);
+        border-color: #7b2ff7;
+        color: #fff;
+      }
+      .email-content {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 25px;
+        white-space: pre-wrap;
+        line-height: 1.7;
+      }
+      .tips {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(255, 215, 0, 0.05);
+        border: 1px solid rgba(255, 215, 0, 0.2);
+        border-radius: 10px;
+      }
+      .tips h3 {
+        color: #ffd700;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+      }
+      .tips li {
+        margin: 5px 0;
+        color: #ccc;
+        font-size: 0.85rem;
+      }
+      .copy-btn {
+        background: rgba(123, 47, 247, 0.3);
+        border: 1px solid #7b2ff7;
+        padding: 8px 20px;
+        border-radius: 8px;
+        color: #b388ff;
+        cursor: pointer;
+        margin-top: 15px;
+      }
+      .loading {
+        text-align: center;
+        padding: 40px;
+        display: none;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.1);
+        border-top-color: #7b2ff7;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin: 0 auto 15px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .error {
+        color: #ff6b6b;
+        margin-top: 10px;
+        display: none;
+      }
+      @media (max-width: 768px) {
+        .row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav><a href="/">← Back to Tools</a></nav>
+      <h1>✉️ AI Email Writer</h1>
+      <p class="desc">Write professional emails in seconds. Get 3 versions for any purpose.</p>
+
+      <form id="emailForm">
+        <div class="form-group">
+          <label>Email Purpose *</label>
+          <input type="text" id="purpose" required placeholder="e.g., Job application, Follow up after meeting, Request for proposal..." />
+        </div>
+
+        <div class="form-group">
+          <label>Context / Details *</label>
+          <textarea id="context" required placeholder="Provide details: Who are you writing to? What's the situation? What do you want to achieve?"></textarea>
+        </div>
+
+        <div class="row">
+          <div class="form-group">
+            <label>Tone</label>
+            <select id="tone">
+              <option value="professional">Professional</option>
+              <option value="friendly">Friendly</option>
+              <option value="formal">Formal</option>
+              <option value="persuasive">Persuasive</option>
+              <option value="apologetic">Apologetic</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Language</label>
+            <select id="language">
+              <option value="en">English</option>
+              <option value="id">Bahasa Indonesia</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">✨ Generate Email</button>
+        <p class="error" id="error"></p>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>AI is writing your emails...</p>
+      </div>
+
+      <div class="results" id="results">
+        <div class="subject-line">
+          <h3>SUGGESTED SUBJECT LINE</h3>
+          <p id="subjectLine"></p>
+        </div>
+
+        <div class="version-tabs" id="tabs"></div>
+        <div class="email-content" id="emailContent"></div>
+        <button class="copy-btn" onclick="copyEmail()">📋 Copy Email</button>
+
+        <div class="tips" id="tips"></div>
+      </div>
+    </div>
+
+    <script>
+      let emailData = null;
+      let currentVersion = 0;
+
+      document.getElementById("emailForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("submitBtn");
+        const loading = document.getElementById("loading");
+        const results = document.getElementById("results");
+        const error = document.getElementById("error");
+
+        btn.disabled = true;
+        loading.style.display = "block";
+        results.style.display = "none";
+        error.style.display = "none";
+
+        try {
+          const resp = await fetch("/api/email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              purpose: document.getElementById("purpose").value,
+              context: document.getElementById("context").value,
+              tone: document.getElementById("tone").value,
+              language: document.getElementById("language").value,
+            }),
+          });
+
+          if (resp.status === 429) throw new Error("Daily limit reached! Upgrade to Pro.");
+          if (!resp.ok) throw new Error("Generation failed. Please try again.");
+
+          const json = await resp.json();
+          emailData = json.data;
+
+          // Subject line
+          document.getElementById("subjectLine").textContent = emailData.subject || "";
+
+          // Version tabs
+          const tabs = document.getElementById("tabs");
+          tabs.innerHTML = "";
+          (emailData.versions || []).forEach((v, i) => {
+            const tab = document.createElement("div");
+            tab.className = `tab${i === 0 ? " active" : ""}`;
+            tab.textContent = `${v.length || ["Short", "Medium", "Detailed"][i]} (${v.word_count || "?"} words)`;
+            tab.onclick = () => showVersion(i);
+            tabs.appendChild(tab);
+          });
+
+          // Show first version
+          showVersion(0);
+
+          // Tips
+          if (emailData.tips && emailData.tips.length) {
+            const tipsDiv = document.getElementById("tips");
+            tipsDiv.innerHTML = "<h3>💡 Tips</h3><ul>" + emailData.tips.map((t) => `<li>${t}</li>`).join("") + "</ul>";
+          }
+
+          results.style.display = "block";
+        } catch (err) {
+          error.textContent = err.message;
+          error.style.display = "block";
+        } finally {
+          btn.disabled = false;
+          loading.style.display = "none";
+        }
+      });
+
+      function showVersion(index) {
+        currentVersion = index;
+        const versions = emailData.versions || [];
+        if (versions[index]) {
+          document.getElementById("emailContent").textContent = versions[index].body;
+        }
+        document.querySelectorAll(".tab").forEach((t, i) => {
+          t.className = `tab${i === index ? " active" : ""}`;
+        });
+      }
+
+      function copyEmail() {
+        const text = document.getElementById("emailContent").textContent;
+        const subject = document.getElementById("subjectLine").textContent;
+        navigator.clipboard.writeText(`Subject: ${subject}\n\n${text}`).then(() => {
+          const btn = document.querySelector(".copy-btn");
+          btn.textContent = "✅ Copied!";
+          setTimeout(() => (btn.textContent = "📋 Copy Email"), 2000);
+        });
+      }
+    </script>
+  </body>
+</html>

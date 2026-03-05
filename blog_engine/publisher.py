@@ -1,0 +1,270 @@
+"""
+Blog Publisher - Auto-publishes articles to WordPress, Medium, and Blogger.
+"""
+
+import json
+import re
+from typing import Optional, Dict
+from datetime import datetime
+
+import aiohttp
+from loguru import logger
+
+from shared.config import settings
+
+
+class WordPressPublisher:
+    """Publish articles to WordPress via REST API."""
+
+    def __init__(self):
+        self.url = settings.wordpress.url.rstrip("/")
+        self.username = settings.wordpress.username
+        self.password = settings.wordpress.password
+        self.enabled = bool(self.url and self.username and self.password)
+
+    async def publish(self, article: Dict) -> Optional[str]:
+        """Publish an article to WordPress. Returns the post URL."""
+        if not self.enabled:
+            logger.debug("WordPress publishing disabled (no credentials)")
+            return None
+
+        endpoint = f"{self.url}/wp-json/wp/v2/posts"
+
+        # Convert markdown to HTML (basic)
+        content = article.get("content", "")
+        content_html = markdown_to_html(content)
+
+        payload = {
+            "title": article.get("title", "Untitled"),
+            "content": content_html,
+            "status": "publish",
+            "slug": article.get("slug", ""),
+            "excerpt": article.get("excerpt", ""),
+            "meta": {
+                "description": article.get("meta_description", ""),
+            },
+        }
+
+        # Add tags if available
+        tags = article.get("tags", [])
+        if tags:
+            payload["tags"] = await self._get_or_create_tags(tags)
+
+        try:
+            auth = aiohttp.BasicAuth(self.username, self.password)
+            async with aiohttp.ClientSession(auth=auth) as session:
+                async with session.post(endpoint, json=payload) as resp:
+                    if resp.status in (200, 201):
+                        data = await resp.json()
+                        url = data.get("link", "")
+                        logger.info(f"Published to WordPress: {url}")
+                        return url
+                    else:
+                        error = await resp.text()
+                        logger.error(f"WordPress publish failed ({resp.status}): {error[:200]}")
+                        return None
+        except Exception as e:
+            logger.error(f"WordPress publish error: {e}")
+            return None
+
+    async def _get_or_create_tags(self, tag_names: list) -> list:
+        """Get or create WordPress tags, return list of tag IDs."""
+        tag_ids = []
+        auth = aiohttp.BasicAuth(self.username, self.password)
+
+        async with aiohttp.ClientSession(auth=auth) as session:
+            for name in tag_names[:10]:  # Limit tags
+                # Try to find existing tag
+                search_url = f"{self.url}/wp-json/wp/v2/tags?search={name}"
+                try:
+                    async with session.get(search_url) as resp:
+                        if resp.status == 200:
+                            tags = await resp.json()
+                            if tags:
+                                tag_ids.append(tags[0]["id"])
+                                continue
+
+                    # Create new tag
+                    create_url = f"{self.url}/wp-json/wp/v2/tags"
+                    async with session.post(create_url, json={"name": name}) as resp:
+                        if resp.status in (200, 201):
+                            tag = await resp.json()
+                            tag_ids.append(tag["id"])
+                except Exception:
+                    pass
+
+        return tag_ids
+
+
+class MediumPublisher:
+    """Publish articles to Medium via API."""
+
+    def __init__(self):
+        self.token = settings.medium.token
+        self.enabled = bool(self.token)
+        self.base_url = "https://api.medium.com/v1"
+
+    async def _get_user_id(self) -> Optional[str]:
+        """Get the authenticated user's ID."""
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(f"{self.base_url}/me") as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("data", {}).get("id")
+        return None
+
+    async def publish(self, article: Dict) -> Optional[str]:
+        """Publish an article to Medium. Returns the post URL."""
+        if not self.enabled:
+            logger.debug("Medium publishing disabled (no token)")
+            return None
+
+        user_id = await self._get_user_id()
+        if not user_id:
+            logger.error("Could not get Medium user ID")
+            return None
+
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+        }
+
+        payload = {
+            "title": article.get("title", "Untitled"),
+            "contentFormat": "markdown",
+            "content": article.get("content", ""),
+            "tags": article.get("tags", [])[:5],  # Medium allows max 5 tags
+            "publishStatus": "public",
+        }
+
+        try:
+            async with aiohttp.ClientSession(headers=headers) as session:
+                url = f"{self.base_url}/users/{user_id}/posts"
+                async with session.post(url, json=payload) as resp:
+                    if resp.status in (200, 201):
+                        data = await resp.json()
+                        post_url = data.get("data", {}).get("url", "")
+                        logger.info(f"Published to Medium: {post_url}")
+                        return post_url
+                    else:
+                        error = await resp.text()
+                        logger.error(f"Medium publish failed ({resp.status}): {error[:200]}")
+                        return None
+        except Exception as e:
+            logger.error(f"Medium publish error: {e}")
+            return None
+
+
+class BloggerPublisher:
+    """Publish articles to Blogger/Blogspot via API."""
+
+    def __init__(self):
+        self.blog_id = settings.blogger.blog_id
+        self.enabled = bool(self.blog_id)
+        self.base_url = "https://www.googleapis.com/blogger/v3"
+
+    async def publish(self, article: Dict, access_token: str = "") -> Optional[str]:
+        """Publish an article to Blogger. Returns the post URL."""
+        if not self.enabled:
+            logger.debug("Blogger publishing disabled (no blog ID)")
+            return None
+
+        if not access_token:
+            logger.error("Blogger requires an OAuth access token")
+            return None
+
+        content_html = markdown_to_html(article.get("content", ""))
+
+        payload = {
+            "kind": "blogger#post",
+            "blog": {"id": self.blog_id},
+            "title": article.get("title", "Untitled"),
+            "content": content_html,
+            "labels": article.get("tags", [])[:20],
+        }
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+
+        try:
+            async with aiohttp.ClientSession(headers=headers) as session:
+                url = f"{self.base_url}/blogs/{self.blog_id}/posts"
+                async with session.post(url, json=payload) as resp:
+                    if resp.status in (200, 201):
+                        data = await resp.json()
+                        post_url = data.get("url", "")
+                        logger.info(f"Published to Blogger: {post_url}")
+                        return post_url
+                    else:
+                        error = await resp.text()
+                        logger.error(f"Blogger publish failed ({resp.status}): {error[:200]}")
+                        return None
+        except Exception as e:
+            logger.error(f"Blogger publish error: {e}")
+            return None
+
+
+def markdown_to_html(md_text: str) -> str:
+    """Basic markdown to HTML conversion."""
+    try:
+        import markdown
+        return markdown.markdown(
+            md_text,
+            extensions=["tables", "fenced_code", "toc", "nl2br"]
+        )
+    except ImportError:
+        # Very basic fallback
+        html = md_text
+        # Headers
+        html = re.sub(r'^### (.+)$', r'<h3>\1</h3>', html, flags=re.MULTILINE)
+        html = re.sub(r'^## (.+)$', r'<h2>\1</h2>', html, flags=re.MULTILINE)
+        html = re.sub(r'^# (.+)$', r'<h1>\1</h1>', html, flags=re.MULTILINE)
+        # Bold
+        html = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', html)
+        # Links
+        html = re.sub(r'\[(.+?)\]\((.+?)\)', r'<a href="\2">\1</a>', html)
+        # Paragraphs
+        html = re.sub(r'\n\n', '</p><p>', html)
+        html = f'<p>{html}</p>'
+        return html
+
+
+class MultiPublisher:
+    """Publish to all configured platforms."""
+
+    def __init__(self):
+        self.wordpress = WordPressPublisher()
+        self.medium = MediumPublisher()
+        self.blogger = BloggerPublisher()
+
+    async def publish_all(self, article: Dict) -> Dict[str, Optional[str]]:
+        """Publish article to all enabled platforms. Returns dict of platform: url."""
+        results = {}
+
+        if self.wordpress.enabled:
+            results["wordpress"] = await self.wordpress.publish(article)
+
+        if self.medium.enabled:
+            results["medium"] = await self.medium.publish(article)
+
+        if self.blogger.enabled:
+            results["blogger"] = await self.blogger.publish(article)
+
+        # Log results
+        published = {k: v for k, v in results.items() if v}
+        if published:
+            logger.info(f"Published to {len(published)} platforms: {list(published.keys())}")
+        else:
+            logger.warning("Article was not published to any platform")
+
+        return results
+
+
+# Singleton
+publisher = MultiPublisher()
