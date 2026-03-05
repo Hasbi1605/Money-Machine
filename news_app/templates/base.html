@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title }}</title>
+    <meta name="description" content="{% block meta_description %}CikalNews — Portal berita terkini Indonesia. Update harian seputar bola, teknologi, politik dunia, ekonomi & bisnis, dan rekomendasi produk terbaik.{% endblock %}">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="{{ page_title }}">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{% endblock %}">
+    <meta property="og:site_name" content="CikalNews">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="container topbar-inner">
+            <span class="topbar-date">{{ now().strftime('%A, %d %B %Y') }}</span>
+            <div class="topbar-links">
+                <a href="/cari">🔍 Cari</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container header-inner">
+            <a href="/" class="logo">
+                <span class="logo-cikal">Cikal</span><span class="logo-news">News</span>
+            </a>
+            <p class="tagline">Portal Berita AI Indonesia</p>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container nav-inner">
+            <button class="nav-toggle" onclick="document.querySelector('.nav-menu').classList.toggle('active')">
+                ☰ Menu
+            </button>
+            <ul class="nav-menu">
+                <li><a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">🏠 Beranda</a></li>
+                {% for key, cat in categories.items() %}
+                <li>
+                    <a href="/kategori/{{ key }}" 
+                       class="nav-link {% if request.url.path == '/kategori/' + key %}active{% endif %}"
+                       style="--cat-color: {{ cat.color }}">
+                        {{ cat.icon }} {{ cat.label }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-about">
+                    <h3><span class="logo-cikal">Cikal</span><span class="logo-news">News</span></h3>
+                    <p>Portal berita terkini yang ditenagai oleh AI. Menyajikan informasi akurat dan analisis mendalam dalam Bahasa Indonesia.</p>
+                </div>
+                <div class="footer-cats">
+                    <h4>Kategori</h4>
+                    <ul>
+                        {% for key, cat in categories.items() %}
+                        <li><a href="/kategori/{{ key }}">{{ cat.icon }} {{ cat.label }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="footer-info">
+                    <h4>Informasi</h4>
+                    <ul>
+                        <li><a href="/">Beranda</a></li>
+                        <li><a href="/cari">Cari Artikel</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; {{ now().year }} CikalNews. Ditenagai oleh AI ✨</p>
+            </div>
+        </div>
+    </footer>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

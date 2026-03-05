@@ -20,3 +20,23 @@ services:
       - key: PYTHON_VERSION
         value: "3.11"
     healthCheckPath: /health
+
+  - type: web
+    name: cikalnews
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements-news.txt
+    startCommand: uvicorn news_app.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+      - key: SHOPEE_AFFILIATE_ID
+        sync: false
+      - key: ALFAGIFT_AFFILIATE_ID
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.11"
+    healthCheckPath: /health

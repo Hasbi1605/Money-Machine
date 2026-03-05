@@ -88,6 +88,30 @@ async def init_db():
                 items_produced INTEGER DEFAULT 0,
                 error_message TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS news_articles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                slug TEXT UNIQUE,
+                category TEXT NOT NULL,
+                content TEXT NOT NULL,
+                excerpt TEXT,
+                meta_description TEXT,
+                tags TEXT,
+                thumbnail_url TEXT,
+                source_title TEXT,
+                source_url TEXT,
+                source_name TEXT,
+                views INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'published',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                published_at TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_news_category ON news_articles(category);
+            CREATE INDEX IF NOT EXISTS idx_news_slug ON news_articles(slug);
+            CREATE INDEX IF NOT EXISTS idx_news_status ON news_articles(status);
+            CREATE INDEX IF NOT EXISTS idx_news_created ON news_articles(created_at DESC);
         """)
         await db.commit()
         logger.info("Database initialized")
@@ -206,6 +230,7 @@ async def get_stats() -> Dict[str, Any]:
 
         articles = await db.execute_fetchall("SELECT COUNT(*) as c FROM articles WHERE status='published'")
         social = await db.execute_fetchall("SELECT COUNT(*) as c FROM social_posts")
+        news = await db.execute_fetchall("SELECT COUNT(*) as c FROM news_articles WHERE status='published'")
         errors = await db.execute_fetchall(
             "SELECT COUNT(*) as c FROM pipeline_runs WHERE status='error' AND date(started_at) = date('now')"
         )
@@ -216,6 +241,149 @@ async def get_stats() -> Dict[str, Any]:
         return {
             "total_articles": articles[0][0] if articles else 0,
             "total_social_posts": social[0][0] if social else 0,
+            "total_news": news[0][0] if news else 0,
             "errors_today": errors[0][0] if errors else 0,
             "runs_today": runs_today[0][0] if runs_today else 0,
         }
+
+
+# ── News Article DB helpers ───────────────────────────────────
+
+async def save_news_article(article: Dict) -> Optional[int]:
+    """Save a news article to the database. Returns article ID or None on duplicate."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            tags = article.get("tags", [])
+            if isinstance(tags, list):
+                tags = ",".join(tags)
+
+            cursor = await db.execute(
+                """INSERT INTO news_articles
+                   (title, slug, category, content, excerpt, meta_description,
+                    tags, thumbnail_url, source_title, source_url, source_name,
+                    status, published_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?)""",
+                (
+                    article["title"],
+                    article["slug"],
+                    article["category"],
+                    article["content"],
+                    article.get("excerpt", ""),
+                    article.get("meta_description", ""),
+                    tags,
+                    article.get("thumbnail_url", ""),
+                    article.get("source_title", ""),
+                    article.get("source_url", ""),
+                    article.get("source_name", ""),
+                    datetime.utcnow().isoformat(),
+                ),
+            )
+            await db.commit()
+            logger.info(f"News saved: {article['title'][:50]}...")
+            return cursor.lastrowid
+        except Exception as e:
+            if "UNIQUE" in str(e):
+                logger.info(f"Duplicate slug skipped: {article.get('slug', '')}")
+            else:
+                logger.error(f"Error saving news: {e}")
+            return None
+
+
+async def get_news_articles(
+    category: str = "",
+    limit: int = 20,
+    offset: int = 0,
+) -> List[Dict]:
+    """Get news articles, optionally filtered by category."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+
+        if category:
+            rows = await db.execute_fetchall(
+                """SELECT * FROM news_articles
+                   WHERE category=? AND status='published'
+                   ORDER BY created_at DESC LIMIT ? OFFSET ?""",
+                (category, limit, offset),
+            )
+        else:
+            rows = await db.execute_fetchall(
+                """SELECT * FROM news_articles
+                   WHERE status='published'
+                   ORDER BY created_at DESC LIMIT ? OFFSET ?""",
+                (limit, offset),
+            )
+
+        return [dict(r) for r in rows]
+
+
+async def get_news_by_slug(slug: str) -> Optional[Dict]:
+    """Get a single news article by slug."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall(
+            "SELECT * FROM news_articles WHERE slug=? AND status='published'",
+            (slug,),
+        )
+        if rows:
+            # Increment view count
+            await db.execute(
+                "UPDATE news_articles SET views = views + 1 WHERE slug=?",
+                (slug,),
+            )
+            await db.commit()
+            return dict(rows[0])
+        return None
+
+
+async def get_news_count(category: str = "") -> int:
+    """Count published news articles."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        if category:
+            rows = await db.execute_fetchall(
+                "SELECT COUNT(*) FROM news_articles WHERE category=? AND status='published'",
+                (category,),
+            )
+        else:
+            rows = await db.execute_fetchall(
+                "SELECT COUNT(*) FROM news_articles WHERE status='published'"
+            )
+        return rows[0][0] if rows else 0
+
+
+async def get_related_news(category: str, exclude_slug: str, limit: int = 4) -> List[Dict]:
+    """Get related articles from the same category."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall(
+            """SELECT * FROM news_articles
+               WHERE category=? AND slug!=? AND status='published'
+               ORDER BY created_at DESC LIMIT ?""",
+            (category, exclude_slug, limit),
+        )
+        return [dict(r) for r in rows]
+
+
+async def get_trending_news(limit: int = 10) -> List[Dict]:
+    """Get most viewed articles."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall(
+            """SELECT * FROM news_articles
+               WHERE status='published'
+               ORDER BY views DESC LIMIT ?""",
+            (limit,),
+        )
+        return [dict(r) for r in rows]
+
+
+async def search_news(query: str, limit: int = 20) -> List[Dict]:
+    """Search articles by title or content."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall(
+            """SELECT * FROM news_articles
+               WHERE status='published' AND (title LIKE ? OR content LIKE ?)
+               ORDER BY created_at DESC LIMIT ?""",
+            (f"%{query}%", f"%{query}%", limit),
+        )
+        return [dict(r) for r in rows]

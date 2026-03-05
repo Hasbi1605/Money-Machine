@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="home-layout">
+    <div class="home-main">
+        
+        <!-- Hero Section -->
+        {% if hero %}
+        <section class="hero-section">
+            <a href="/artikel/{{ hero.slug }}" class="hero-card">
+                <div class="hero-image">
+                    <img src="{{ hero.thumbnail_url }}" alt="{{ hero.title }}" loading="eager">
+                    <span class="hero-badge" style="background: {{ categories[hero.category].color }}">
+                        {{ categories[hero.category].icon }} {{ categories[hero.category].label }}
+                    </span>
+                </div>
+                <div class="hero-content">
+                    <h1 class="hero-title">{{ hero.title }}</h1>
+                    <p class="hero-excerpt">{{ hero.excerpt }}</p>
+                    <span class="hero-time">{{ time_ago(hero.created_at) }}</span>
+                </div>
+            </a>
+        </section>
+        {% endif %}
+
+        <!-- Category Sections -->
+        {% for cat_key, articles in category_articles.items() %}
+        {% set cat = categories[cat_key] %}
+        <section class="category-section">
+            <div class="section-header">
+                <h2 class="section-title" style="border-color: {{ cat.color }}">
+                    {{ cat.icon }} {{ cat.label }}
+                </h2>
+                <a href="/kategori/{{ cat_key }}" class="see-all">Lihat Semua →</a>
+            </div>
+
+            <div class="article-grid">
+                {% for article in articles[:1] %}
+                <a href="/artikel/{{ article.slug }}" class="card card-featured">
+                    <div class="card-image">
+                        <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy">
+                    </div>
+                    <div class="card-body">
+                        <h3 class="card-title">{{ article.title }}</h3>
+                        <p class="card-excerpt">{{ article.excerpt[:120] }}...</p>
+                        <span class="card-time">{{ time_ago(article.created_at) }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+
+                <div class="card-list-side">
+                    {% for article in articles[1:5] %}
+                    <a href="/artikel/{{ article.slug }}" class="card card-horizontal">
+                        <div class="card-image-sm">
+                            <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy">
+                        </div>
+                        <div class="card-body">
+                            <h3 class="card-title-sm">{{ article.title }}</h3>
+                            <span class="card-time">{{ time_ago(article.created_at) }}</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endfor %}
+
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-widget">
+            <h3 class="widget-title">🔥 Trending</h3>
+            <ol class="trending-list">
+                {% for item in trending %}
+                <li>
+                    <a href="/artikel/{{ item.slug }}" class="trending-link">
+                        <span class="trending-num">{{ loop.index }}</span>
+                        <div class="trending-info">
+                            <span class="trending-cat" style="color: {{ categories[item.category].color if item.category in categories else '#666' }}">
+                                {{ categories[item.category].label if item.category in categories else item.category }}
+                            </span>
+                            <p class="trending-title">{{ item.title }}</p>
+                        </div>
+                    </a>
+                </li>
+                {% endfor %}
+            </ol>
+        </div>
+
+        <div class="sidebar-widget">
+            <h3 class="widget-title">📂 Kategori</h3>
+            <ul class="category-list">
+                {% for key, cat in categories.items() %}
+                <li>
+                    <a href="/kategori/{{ key }}" class="category-link">
+                        <span>{{ cat.icon }} {{ cat.label }}</span>
+                        <span class="arrow">→</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </aside>
+</div>
+{% endblock %}

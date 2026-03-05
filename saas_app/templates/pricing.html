@@ -6,18 +6,38 @@
     <title>Harga - AI Writing Tools Pro</title>
     <meta name="description" content="Upgrade ke AI Writing Tools Pro. Bayar pakai QRIS, GoPay, ShopeePay, Dana, OVO." />
     <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
         color: #e0e0e0;
         min-height: 100vh;
       }
-      .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-      nav { text-align: center; padding: 20px; }
-      nav a { color: #b388ff; text-decoration: none; font-size: 0.95rem; }
-      nav a:hover { color: #fff; }
-      header { text-align: center; padding: 40px 20px 30px; }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      nav {
+        text-align: center;
+        padding: 20px;
+      }
+      nav a {
+        color: #b388ff;
+        text-decoration: none;
+        font-size: 0.95rem;
+      }
+      nav a:hover {
+        color: #fff;
+      }
+      header {
+        text-align: center;
+        padding: 40px 20px 30px;
+      }
       h1 {
         font-size: 2.5rem;
         background: linear-gradient(90deg, #00d2ff, #7b2ff7);
@@ -25,7 +45,11 @@
         -webkit-text-fill-color: transparent;
         margin-bottom: 10px;
       }
-      .subtitle { font-size: 1.1rem; color: #a0a0a0; margin-bottom: 20px; }
+      .subtitle {
+        font-size: 1.1rem;
+        color: #a0a0a0;
+        margin-bottom: 20px;
+      }
 
       /* Payment Methods Banner */
       .payment-methods {
@@ -35,10 +59,20 @@
         border-radius: 12px;
         margin-bottom: 20px;
       }
-      .payment-methods p { color: #888; font-size: 0.85rem; margin-bottom: 8px; }
-      .payment-icons { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; align-items: center; }
+      .payment-methods p {
+        color: #888;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+      }
+      .payment-icons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
       .payment-icons span {
-        background: rgba(255,255,255,0.08);
+        background: rgba(255, 255, 255, 0.08);
         padding: 6px 14px;
         border-radius: 8px;
         font-size: 0.85rem;
@@ -69,65 +103,177 @@
       .plan-card.featured::before {
         content: "PALING POPULER";
         position: absolute;
-        top: -12px; left: 50%; transform: translateX(-50%);
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
         background: linear-gradient(90deg, #7b2ff7, #00d2ff);
-        padding: 4px 20px; border-radius: 12px;
-        font-size: 0.75rem; font-weight: 700; color: white; letter-spacing: 1px;
+        padding: 4px 20px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: white;
+        letter-spacing: 1px;
       }
-      .plan-name { font-size: 1.3rem; color: #fff; margin-bottom: 10px; font-weight: 600; }
-      .plan-price { font-size: 3rem; font-weight: 800; color: #fff; margin-bottom: 5px; }
-      .plan-price span { font-size: 1rem; font-weight: 400; color: #a0a0a0; }
-      .plan-period { color: #a0a0a0; font-size: 0.9rem; margin-bottom: 25px; }
-      .features { list-style: none; text-align: left; margin-bottom: 30px; }
+      .plan-name {
+        font-size: 1.3rem;
+        color: #fff;
+        margin-bottom: 10px;
+        font-weight: 600;
+      }
+      .plan-price {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 5px;
+      }
+      .plan-price span {
+        font-size: 1rem;
+        font-weight: 400;
+        color: #a0a0a0;
+      }
+      .plan-period {
+        color: #a0a0a0;
+        font-size: 0.9rem;
+        margin-bottom: 25px;
+      }
+      .features {
+        list-style: none;
+        text-align: left;
+        margin-bottom: 30px;
+      }
       .features li {
-        padding: 8px 0; color: #ccc; font-size: 0.95rem;
-        display: flex; align-items: center; gap: 10px;
+        padding: 8px 0;
+        color: #ccc;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
       }
-      .features li::before { content: "✓"; color: #00d2ff; font-weight: 700; font-size: 1.1rem; flex-shrink: 0; }
-      .features li.disabled { color: #666; }
-      .features li.disabled::before { content: "✗"; color: #666; }
+      .features li::before {
+        content: "✓";
+        color: #00d2ff;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+      .features li.disabled {
+        color: #666;
+      }
+      .features li.disabled::before {
+        content: "✗";
+        color: #666;
+      }
 
       /* Buttons */
       .btn {
-        display: inline-block; padding: 14px 40px; border-radius: 25px;
-        font-weight: 600; font-size: 1rem; text-decoration: none;
-        transition: all 0.3s ease; cursor: pointer; border: none;
+        display: inline-block;
+        padding: 14px 40px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 1rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
       }
-      .btn-primary { background: linear-gradient(90deg, #7b2ff7, #00d2ff); color: white; }
-      .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(123, 47, 247, 0.3); }
-      .btn-secondary { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
-      .btn-secondary:hover { background: rgba(255,255,255,0.15); }
-      .btn:disabled, .btn.disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+      .btn-primary {
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        color: white;
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(123, 47, 247, 0.3);
+      }
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .btn:disabled,
+      .btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+      }
 
       /* Email Input */
-      .email-form { margin-bottom: 15px; }
-      .email-form input {
-        width: 100%; padding: 12px 16px; border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08);
-        color: #fff; font-size: 0.95rem; outline: none; text-align: center;
+      .email-form {
+        margin-bottom: 15px;
       }
-      .email-form input::placeholder { color: #888; }
-      .email-form input:focus { border-color: #7b2ff7; }
+      .email-form input {
+        width: 100%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        font-size: 0.95rem;
+        outline: none;
+        text-align: center;
+      }
+      .email-form input::placeholder {
+        color: #888;
+      }
+      .email-form input:focus {
+        border-color: #7b2ff7;
+      }
 
       /* Status message */
       #payment-status {
-        margin-top: 12px; font-size: 0.9rem; min-height: 20px;
+        margin-top: 12px;
+        font-size: 0.9rem;
+        min-height: 20px;
       }
-      .status-success { color: #4caf50; }
-      .status-error { color: #f44336; }
-      .status-pending { color: #ff9800; }
+      .status-success {
+        color: #4caf50;
+      }
+      .status-error {
+        color: #f44336;
+      }
+      .status-pending {
+        color: #ff9800;
+      }
 
       /* FAQ */
-      .faq { padding: 40px 0; }
-      .faq h2 { text-align: center; font-size: 1.8rem; color: #fff; margin-bottom: 30px; }
-      .faq-item {
-        background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 12px; padding: 20px; margin-bottom: 15px;
+      .faq {
+        padding: 40px 0;
       }
-      .faq-item h3 { color: #b388ff; font-size: 1rem; margin-bottom: 8px; }
-      .faq-item p { color: #a0a0a0; font-size: 0.9rem; line-height: 1.6; }
-      footer { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
-      footer a { color: #7b2ff7; text-decoration: none; }
+      .faq h2 {
+        text-align: center;
+        font-size: 1.8rem;
+        color: #fff;
+        margin-bottom: 30px;
+      }
+      .faq-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+      }
+      .faq-item h3 {
+        color: #b388ff;
+        font-size: 1rem;
+        margin-bottom: 8px;
+      }
+      .faq-item p {
+        color: #a0a0a0;
+        font-size: 0.9rem;
+        line-height: 1.6;
+      }
+      footer {
+        text-align: center;
+        padding: 30px;
+        color: #666;
+        font-size: 0.85rem;
+      }
+      footer a {
+        color: #7b2ff7;
+        text-decoration: none;
+      }
     </style>
   </head>
   <body>
@@ -188,9 +334,7 @@
           <div class="email-form">
             <input type="email" id="user-email" placeholder="Masukkan email kamu" />
           </div>
-          <button class="btn btn-primary" id="pay-btn" onclick="startPayment()">
-            Upgrade ke Pro 🚀
-          </button>
+          <button class="btn btn-primary" id="pay-btn" onclick="startPayment()">Upgrade ke Pro 🚀</button>
           <div id="payment-status"></div>
           {% else %}
           <span class="btn btn-primary disabled">Segera Hadir</span>
@@ -242,77 +386,76 @@
     {% endif %}
 
     <script>
-      const statusEl = document.getElementById('payment-status');
-      const payBtn = document.getElementById('pay-btn');
+      const statusEl = document.getElementById("payment-status");
+      const payBtn = document.getElementById("pay-btn");
 
       function setStatus(msg, type) {
         statusEl.textContent = msg;
-        statusEl.className = 'status-' + type;
+        statusEl.className = "status-" + type;
       }
 
       async function startPayment() {
-        const email = document.getElementById('user-email').value.trim();
-        if (!email || !email.includes('@')) {
-          setStatus('Masukkan email yang valid', 'error');
+        const email = document.getElementById("user-email").value.trim();
+        if (!email || !email.includes("@")) {
+          setStatus("Masukkan email yang valid", "error");
           return;
         }
 
         payBtn.disabled = true;
-        payBtn.textContent = 'Memproses...';
-        setStatus('', '');
+        payBtn.textContent = "Memproses...";
+        setStatus("", "");
 
         try {
-          const res = await fetch('/api/create-payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+          const res = await fetch("/api/create-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: email }),
           });
 
           const data = await res.json();
 
           if (!res.ok) {
-            setStatus(data.detail || 'Gagal membuat pembayaran', 'error');
+            setStatus(data.detail || "Gagal membuat pembayaran", "error");
             payBtn.disabled = false;
-            payBtn.textContent = 'Upgrade ke Pro 🚀';
+            payBtn.textContent = "Upgrade ke Pro 🚀";
             return;
           }
 
           if (!data.success) {
-            setStatus(data.message || 'Terjadi kesalahan', 'error');
+            setStatus(data.message || "Terjadi kesalahan", "error");
             payBtn.disabled = false;
-            payBtn.textContent = 'Upgrade ke Pro 🚀';
+            payBtn.textContent = "Upgrade ke Pro 🚀";
             return;
           }
 
           // Open Midtrans Snap popup
           window.snap.pay(data.snap_token, {
-            onSuccess: function(result) {
-              setStatus('Pembayaran berhasil! 🎉 Akun Pro kamu aktif.', 'success');
-              payBtn.textContent = '✓ Sudah Pro!';
+            onSuccess: function (result) {
+              setStatus("Pembayaran berhasil! 🎉 Akun Pro kamu aktif.", "success");
+              payBtn.textContent = "✓ Sudah Pro!";
               payBtn.disabled = true;
             },
-            onPending: function(result) {
-              setStatus('Menunggu pembayaran... Selesaikan di aplikasi e-wallet kamu.', 'pending');
+            onPending: function (result) {
+              setStatus("Menunggu pembayaran... Selesaikan di aplikasi e-wallet kamu.", "pending");
               payBtn.disabled = false;
-              payBtn.textContent = 'Upgrade ke Pro 🚀';
+              payBtn.textContent = "Upgrade ke Pro 🚀";
             },
-            onError: function(result) {
-              setStatus('Pembayaran gagal. Silakan coba lagi.', 'error');
+            onError: function (result) {
+              setStatus("Pembayaran gagal. Silakan coba lagi.", "error");
               payBtn.disabled = false;
-              payBtn.textContent = 'Upgrade ke Pro 🚀';
+              payBtn.textContent = "Upgrade ke Pro 🚀";
             },
-            onClose: function() {
-              if (!payBtn.textContent.includes('Sudah Pro')) {
+            onClose: function () {
+              if (!payBtn.textContent.includes("Sudah Pro")) {
                 payBtn.disabled = false;
-                payBtn.textContent = 'Upgrade ke Pro 🚀';
+                payBtn.textContent = "Upgrade ke Pro 🚀";
               }
-            }
+            },
           });
-
         } catch (err) {
-          setStatus('Error: ' + err.message, 'error');
+          setStatus("Error: " + err.message, "error");
           payBtn.disabled = false;
-          payBtn.textContent = 'Upgrade ke Pro 🚀';
+          payBtn.textContent = "Upgrade ke Pro 🚀";
         }
       }
     </script>
