@@ -153,12 +153,9 @@ async def scheduler_loop():
     """
     logger.info("📅 News scheduler started")
 
-    # Initial run on startup (1 article per category as warm-up)
-    await asyncio.sleep(10)  # Wait for app to fully start
-    try:
-        await run_news_pipeline(articles_per_cat=2)
-    except Exception as e:
-        logger.error(f"Initial pipeline failed: {e}")
+    # Skip initial auto-generate on startup to avoid crash on Render free tier.
+    # Use /tulis via Telegram bot to generate manually, or wait for first cycle.
+    logger.info("⏳ First auto-generate in 6 hours. Use /tulis for manual trigger.")
 
     cycle = 0
     while True:
