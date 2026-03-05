@@ -4,11 +4,8 @@ Returns structured headline data for the AI rewriter.
 """
 
 import asyncio
-import hashlib
-import json
 import re
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Optional
 
 import aiohttp
@@ -16,39 +13,33 @@ import feedparser
 from loguru import logger
 
 from shared.config import settings
+from shared.database import get_news_articles
 
 # ── RSS Feed Sources per Category ─────────────────────────────
 
 RSS_SOURCES: Dict[str, List[Dict]] = {
     "bola": [
-        {"name": "Goal.com ID", "url": "https://www.goal.com/feeds/id/news"},
-        {"name": "Bola.net", "url": "https://www.bola.net/feed/"},
-        {"name": "Detik Sport", "url": "https://rss.detik.com/index.php/sport"},
         {"name": "CNN Sport", "url": "https://www.cnnindonesia.com/olahraga/rss"},
+        {"name": "Detik Sport", "url": "https://rss.detik.com/index.php/sport"},
+        {"name": "Kompas Bola", "url": "https://bola.kompas.com/rss"},
     ],
     "teknologi": [
-        {"name": "Detik Inet", "url": "https://rss.detik.com/index.php/inet"},
-        {"name": "Tekno Kompas", "url": "https://tekno.kompas.com/rss"},
         {"name": "CNN Tech", "url": "https://www.cnnindonesia.com/teknologi/rss"},
         {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml"},
+        {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index"},
     ],
     "politik": [
         {"name": "BBC Indonesia", "url": "https://feeds.bbci.co.uk/indonesia/rss.xml"},
         {"name": "CNN Internasional", "url": "https://www.cnnindonesia.com/internasional/rss"},
-        {"name": "Detik News", "url": "https://rss.detik.com/index.php/detikcom"},
-        {"name": "Kompas News", "url": "https://news.kompas.com/rss"},
+        {"name": "CNN Nasional", "url": "https://www.cnnindonesia.com/nasional/rss"},
     ],
     "ekonomi": [
         {"name": "CNBC Indonesia", "url": "https://www.cnbcindonesia.com/rss"},
+        {"name": "CNN Ekonomi", "url": "https://www.cnnindonesia.com/ekonomi/rss"},
         {"name": "Detik Finance", "url": "https://rss.detik.com/index.php/finance"},
-        {"name": "Bisnis.com", "url": "https://www.bisnis.com/rss"},
-        {"name": "Kompas Money", "url": "https://money.kompas.com/rss"},
     ],
     "rekomendasi": [
-        # Rekomendasi uses keyword-based generation, not RSS
-        # But we can still check tech review sites for trending products
         {"name": "GSMArena", "url": "https://www.gsmarena.com/rss-news-reviews.php3"},
-        {"name": "Detik Inet Review", "url": "https://rss.detik.com/index.php/inet"},
     ],
 }
 
@@ -91,38 +82,21 @@ GOOGLE_NEWS_QUERIES: Dict[str, List[str]] = {
     ],
 }
 
-# Track used headlines to avoid duplicates
-USED_HEADLINES_FILE = settings.data_dir / "used_headlines.json"
+# Track used headlines to avoid duplicates (DB-based, survives Render restarts)
 
 
-def load_used_headlines() -> set:
-    """Load hashes of previously used headlines."""
-    if USED_HEADLINES_FILE.exists():
-        try:
-            with open(USED_HEADLINES_FILE) as f:
-                return set(json.load(f))
-        except Exception:
-            return set()
-    return set()
+async def get_existing_titles() -> set:
+    """Get title prefixes of existing articles from DB to avoid duplicates."""
+    try:
+        articles = await get_news_articles(limit=200)
+        return {a["title"][:40].lower().strip() for a in articles}
+    except Exception:
+        return set()
 
 
-def save_headline_hash(headline: str):
-    """Save a headline hash to avoid re-using it."""
-    used = load_used_headlines()
-    h = hashlib.md5(headline.lower().strip().encode()).hexdigest()
-    used.add(h)
-    # Keep max 1000 to avoid file bloat
-    if len(used) > 1000:
-        used = set(list(used)[-500:])
-    with open(USED_HEADLINES_FILE, "w") as f:
-        json.dump(list(used), f)
-
-
-def is_headline_used(headline: str) -> bool:
-    """Check if a headline (or similar) was already used."""
-    used = load_used_headlines()
-    h = hashlib.md5(headline.lower().strip().encode()).hexdigest()
-    return h in used
+def _title_key(title: str) -> str:
+    """Normalize title for comparison."""
+    return title[:40].lower().strip()
 
 
 # ── RSS Feed Parser ───────────────────────────────────────────
@@ -267,13 +241,16 @@ async def get_trending_topics(
 ) -> List[Dict]:
     """
     Get the best trending topics for a category.
-    Combines RSS + Google News, deduplicates, filters used topics.
+    Combines RSS + Google News, deduplicates, filters already-published topics.
     Returns top `count` fresh topics.
     """
     # Fetch from both sources in parallel
     rss_task = fetch_all_rss(category)
     google_task = fetch_google_news(category)
-    rss_results, google_results = await asyncio.gather(rss_task, google_task)
+    existing_task = get_existing_titles()
+    rss_results, google_results, existing_titles = await asyncio.gather(
+        rss_task, google_task, existing_task
+    )
 
     # Combine and deduplicate by title similarity
     all_headlines = rss_results + google_results
@@ -288,14 +265,15 @@ async def get_trending_topics(
             continue
         seen_titles.add(title_key)
 
-        # Skip already used headlines
-        if is_headline_used(item["title"]):
+        # Skip headlines already published in DB
+        if _title_key(item["title"]) in existing_titles:
             continue
 
         unique.append(item)
 
-    # Sort by freshness (items with published date first)
-    # Then return top `count`
+    # Shuffle to add variety, then return top `count`
+    import random
+    random.shuffle(unique)
     result = unique[:count]
 
     logger.info(
