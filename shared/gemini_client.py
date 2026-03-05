@@ -78,12 +78,13 @@ class GeminiClient:
         prompt: str,
         system_instruction: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Generate and parse JSON response."""
+        """Generate and parse JSON response with robust error recovery."""
         import json
 
         json_prompt = f"""{prompt}
 
-IMPORTANT: Respond ONLY with valid JSON. No markdown, no code blocks, no explanation."""
+IMPORTANT: Respond ONLY with valid JSON. No markdown, no code blocks, no explanation.
+Escape all special characters in strings properly (especially quotes and newlines)."""
 
         response = await self.generate(
             json_prompt,
@@ -102,7 +103,57 @@ IMPORTANT: Respond ONLY with valid JSON. No markdown, no code blocks, no explana
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON: {e}\nResponse: {cleaned[:200]}")
+            logger.warning(f"JSON parse failed, attempting repair: {e}")
+
+            # Repair attempt 1: Fix truncated JSON by closing brackets
+            repair = cleaned.rstrip()
+            # Count open/close braces and brackets
+            open_braces = repair.count('{') - repair.count('}')
+            open_brackets = repair.count('[') - repair.count(']')
+            # If inside a string value, close it first
+            if repair.rstrip().endswith('\\'):
+                repair = repair.rstrip()[:-1]
+            # Try to detect if we're inside a string
+            in_string = False
+            last_quote = repair.rfind('"')
+            if last_quote > 0:
+                # Count unescaped quotes
+                quote_count = 0
+                i = 0
+                while i < len(repair):
+                    if repair[i] == '\\':
+                        i += 2
+                        continue
+                    if repair[i] == '"':
+                        quote_count += 1
+                    i += 1
+                if quote_count % 2 == 1:  # odd = unclosed string
+                    repair += '"'
+
+            repair += ']' * max(0, open_brackets)
+            repair += '}' * max(0, open_braces)
+
+            try:
+                return json.loads(repair)
+            except json.JSONDecodeError:
+                pass
+
+            # Repair attempt 2: Extract first valid JSON object
+            brace_start = cleaned.find('{')
+            if brace_start >= 0:
+                depth = 0
+                for i in range(brace_start, len(cleaned)):
+                    if cleaned[i] == '{':
+                        depth += 1
+                    elif cleaned[i] == '}':
+                        depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(cleaned[brace_start:i+1])
+                        except json.JSONDecodeError:
+                            break
+
+            logger.error(f"Failed to parse JSON after repair: {e}\nResponse: {cleaned[:200]}")
             raise
 
     async def generate_list(

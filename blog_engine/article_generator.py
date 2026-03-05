@@ -21,6 +21,17 @@ AFFILIATE_CONFIG_PATH = Path(__file__).parent / "affiliate_config.json"
 with open(AFFILIATE_CONFIG_PATH) as f:
     AFFILIATE_CONFIG = json.load(f)
 
+# Override affiliate tags from .env (so they don't need to be hardcoded in JSON)
+_tag_map = {
+    "amazon": settings.affiliate.amazon_tag,
+    "tokopedia": settings.affiliate.tokopedia_id,
+    "shopee": settings.affiliate.shopee_id,
+    "alfagift": settings.affiliate.alfagift_id,
+}
+for prog_key, tag_value in _tag_map.items():
+    if tag_value and prog_key in AFFILIATE_CONFIG["programs"]:
+        AFFILIATE_CONFIG["programs"][prog_key]["tag"] = tag_value
+
 
 def get_affiliate_links(keyword: str, language: str = "en") -> List[Dict]:
     """Generate affiliate link placeholders based on keyword and language."""

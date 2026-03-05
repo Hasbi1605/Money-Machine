@@ -3,6 +3,7 @@ Central configuration for AI Money Machine.
 Loads from .env using python-dotenv.
 """
 
+import os
 from pathlib import Path
 from typing import List
 from dotenv import dotenv_values
@@ -14,8 +15,8 @@ _env = dotenv_values(ENV_FILE)
 
 
 def _e(key: str, default: str = "") -> str:
-    """Get env value with fallback."""
-    return _env.get(key, default)
+    """Get env value: os.environ first (CI/CD), then .env file, then default."""
+    return os.environ.get(key, _env.get(key, default))
 
 
 class GeminiSettings:
@@ -45,6 +46,7 @@ class AffiliateSettings:
     amazon_tag: str = _e("AMAZON_AFFILIATE_TAG")
     tokopedia_id: str = _e("TOKOPEDIA_AFFILIATE_ID")
     shopee_id: str = _e("SHOPEE_AFFILIATE_ID")
+    alfagift_id: str = _e("ALFAGIFT_AFFILIATE_ID")
 
 
 class YouTubeSettings:

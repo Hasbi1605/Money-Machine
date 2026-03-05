@@ -7,6 +7,8 @@ import re
 from typing import Optional, Dict
 from datetime import datetime
 
+from pathlib import Path
+
 import aiohttp
 from loguru import logger
 
@@ -160,22 +162,94 @@ class MediumPublisher:
 
 
 class BloggerPublisher:
-    """Publish articles to Blogger/Blogspot via API."""
+    """Publish articles to Blogger/Blogspot via OAuth2 or Service Account."""
 
     def __init__(self):
         self.blog_id = settings.blogger.blog_id
-        self.enabled = bool(self.blog_id)
+        self.sa_json_path = settings.blogger.service_account_json
         self.base_url = "https://www.googleapis.com/blogger/v3"
+
+        # Check for OAuth2 token file first (preferred), then service account
+        from shared.config import BASE_DIR
+        self.token_file = BASE_DIR / "data" / "blogger_token.json"
+        self.has_oauth = self.token_file.exists()
+        self.has_sa = bool(self.sa_json_path)
+
+        self.enabled = bool(self.blog_id and (self.has_oauth or self.has_sa))
+        if not self.enabled:
+            logger.debug("Blogger publishing disabled (no blog ID or credentials)")
+
+    def _get_access_token(self) -> Optional[str]:
+        """Get access token — try OAuth2 refresh token first, then Service Account."""
+        # Method 1: OAuth2 refresh token (from setup_blogger_auth.py)
+        if self.has_oauth:
+            try:
+                from google.oauth2.credentials import Credentials
+                from google.auth.transport.requests import Request
+
+                creds = Credentials.from_authorized_user_file(
+                    str(self.token_file),
+                    ['https://www.googleapis.com/auth/blogger']
+                )
+                if creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                    # Save refreshed token
+                    import json
+                    token_data = {
+                        "token": creds.token,
+                        "refresh_token": creds.refresh_token,
+                        "token_uri": creds.token_uri,
+                        "client_id": creds.client_id,
+                        "client_secret": creds.client_secret,
+                        "scopes": list(creds.scopes or []),
+                    }
+                    with open(self.token_file, "w") as f:
+                        json.dump(token_data, f, indent=2, default=str)
+                if creds.valid:
+                    logger.debug("Using OAuth2 token for Blogger")
+                    return creds.token
+            except Exception as e:
+                logger.warning(f"OAuth2 token failed, trying service account: {e}")
+
+        # Method 2: Service Account
+        if self.has_sa:
+            try:
+                from google.oauth2 import service_account
+                from google.auth.transport.requests import Request
+
+                sa_path = Path(self.sa_json_path)
+                if not sa_path.is_absolute():
+                    from shared.config import BASE_DIR
+                    sa_path = BASE_DIR / sa_path
+
+                if not sa_path.exists():
+                    logger.error(f"Service account JSON not found: {sa_path}")
+                    return None
+
+                SCOPES = ['https://www.googleapis.com/auth/blogger']
+                creds = service_account.Credentials.from_service_account_file(
+                    str(sa_path), scopes=SCOPES
+                )
+                creds.refresh(Request())
+                logger.debug("Using service account token for Blogger")
+                return creds.token
+            except Exception as e:
+                logger.error(f"Service account token failed: {e}")
+                return None
+
+        return None
 
     async def publish(self, article: Dict, access_token: str = "") -> Optional[str]:
         """Publish an article to Blogger. Returns the post URL."""
         if not self.enabled:
-            logger.debug("Blogger publishing disabled (no blog ID)")
+            logger.debug("Blogger publishing disabled (no blog ID or service account)")
             return None
 
         if not access_token:
-            logger.error("Blogger requires an OAuth access token")
-            return None
+            access_token = self._get_access_token()
+            if not access_token:
+                logger.error("Could not obtain Blogger access token")
+                return None
 
         content_html = markdown_to_html(article.get("content", ""))
 

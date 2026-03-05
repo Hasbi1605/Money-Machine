@@ -20,6 +20,8 @@ logs/
 *.mp3
 *.wav
 credentials/
+filejson/
+data/blogger_token.json
 token.json
 *.pickle
 .DS_Store

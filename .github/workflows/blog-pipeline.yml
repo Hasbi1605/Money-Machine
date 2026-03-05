@@ -1,0 +1,71 @@
+name: Blog Pipeline - Auto Generate & Publish
+
+on:
+  schedule:
+    # Run twice daily: 6 AM and 6 PM UTC (1 PM and 1 AM WIB)
+    # ~3-5 min per run × 60 runs/month = ~180-300 min (within 2000 min free tier)
+    - cron: "0 6,18 * * *"
+  workflow_dispatch: # Manual trigger from GitHub UI
+
+jobs:
+  generate-blog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create required directories
+        run: mkdir -p output/articles output/videos output/thumbnails logs data
+
+      - name: Setup Google Service Account
+        run: |
+          mkdir -p filejson
+          echo '${{ secrets.GOOGLE_SA_JSON_CONTENT }}' > filejson/propane-fusion-441822-a5-5ad666121cae.json
+
+      - name: Initialize database
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -c "import asyncio; from shared.database import init_db; asyncio.run(init_db())"
+
+      - name: Run blog pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: filejson/propane-fusion-441822-a5-5ad666121cae.json
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          AMAZON_AFFILIATE_TAG: ${{ secrets.AMAZON_AFFILIATE_TAG }}
+          TOKOPEDIA_AFFILIATE_ID: ${{ secrets.TOKOPEDIA_AFFILIATE_ID }}
+          SHOPEE_AFFILIATE_ID: ${{ secrets.SHOPEE_AFFILIATE_ID }}
+          ALFAGIFT_AFFILIATE_ID: ${{ secrets.ALFAGIFT_AFFILIATE_ID }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          CONTENT_LANGUAGES: "en,id"
+          TIMEZONE: "Asia/Jakarta"
+        run: python main.py --blog
+
+      - name: Upload generated articles
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: articles-${{ github.run_number }}
+          path: output/articles/
+          retention-days: 30
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: logs-${{ github.run_number }}
+          path: logs/
+          retention-days: 7
