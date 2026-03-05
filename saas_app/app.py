@@ -306,53 +306,145 @@ Return as JSON with fields:
 
 
 # ---------------------
-# Payment Webhook (LemonSqueezy)
+# Payment - Midtrans (QRIS, GoPay, ShopeePay, Dana, OVO)
 # ---------------------
 
-@app.post("/webhook/payment")
-async def payment_webhook(request: Request):
-    """Handle LemonSqueezy payment webhooks."""
+def get_snap_client():
+    """Create Midtrans Snap client."""
+    import midtransclient
+    return midtransclient.Snap(
+        is_production=settings.saas.midtrans_is_production,
+        server_key=settings.saas.midtrans_server_key,
+        client_key=settings.saas.midtrans_client_key,
+    )
+
+
+@app.post("/api/create-payment")
+async def create_payment(request: Request):
+    """Create Midtrans Snap payment token for Pro upgrade."""
+    body = await request.json()
+    email = body.get("email", "").strip()
+    
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Email tidak valid")
+    
+    if not settings.saas.midtrans_server_key:
+        raise HTTPException(status_code=503, detail="Payment belum dikonfigurasi")
+    
+    # Check if already premium
+    if await is_premium_user(email):
+        return JSONResponse(content={"success": False, "message": "Kamu sudah Pro!"})
+    
+    import uuid
+    order_id = f"PRO-{uuid.uuid4().hex[:8].upper()}-{int(datetime.utcnow().timestamp())}"
+    
+    snap = get_snap_client()
+    
+    param = {
+        "transaction_details": {
+            "order_id": order_id,
+            "gross_amount": settings.saas.pro_price,
+        },
+        "item_details": [{
+            "id": "ai-writing-pro",
+            "price": settings.saas.pro_price,
+            "quantity": 1,
+            "name": "AI Writing Tools Pro (1 Bulan)",
+        }],
+        "customer_details": {
+            "email": email,
+        },
+        "enabled_payments": [
+            "gopay", "shopeepay", "dana", "ovo", "qris",
+            "bca_va", "bni_va", "bri_va", "permata_va", "other_va",
+        ],
+    }
+    
+    try:
+        snap_response = snap.create_transaction(param)
+        logger.info(f"Payment created: {order_id} for {email}")
+        return JSONResponse(content={
+            "success": True,
+            "snap_token": snap_response["token"],
+            "redirect_url": snap_response["redirect_url"],
+            "order_id": order_id,
+        })
+    except Exception as e:
+        logger.error(f"Midtrans error: {e}")
+        raise HTTPException(status_code=500, detail="Gagal membuat pembayaran")
+
+
+@app.post("/webhook/midtrans")
+async def midtrans_webhook(request: Request):
+    """Handle Midtrans payment notification webhook."""
     import hashlib
-    import hmac
-
-    body = await request.body()
-    signature = request.headers.get("X-Signature", "")
-
-    secret = settings.saas.lemonsqueezy_webhook_secret
-    if secret:
-        expected = hmac.new(
-            secret.encode(), body, hashlib.sha256
-        ).hexdigest()
-        if not hmac.compare_digest(signature, expected):
+    
+    body = await request.json()
+    
+    order_id = body.get("order_id", "")
+    status_code = body.get("status_code", "")
+    gross_amount = body.get("gross_amount", "")
+    signature_key = body.get("signature_key", "")
+    transaction_status = body.get("transaction_status", "")
+    fraud_status = body.get("fraud_status", "accept")
+    
+    # Verify signature
+    server_key = settings.saas.midtrans_server_key
+    if server_key:
+        raw = f"{order_id}{status_code}{gross_amount}{server_key}"
+        expected_signature = hashlib.sha512(raw.encode()).hexdigest()
+        if signature_key != expected_signature:
+            logger.warning(f"Invalid Midtrans signature for {order_id}")
             raise HTTPException(status_code=401, detail="Invalid signature")
-
-    data = json.loads(body)
-    event = data.get("meta", {}).get("event_name", "")
-
-    if event == "order_created":
-        attrs = data.get("data", {}).get("attributes", {})
-        email = attrs.get("user_email", "")
-        total = attrs.get("total", 0)
-        currency = attrs.get("currency", "USD")
-
-        if email:
-            await add_premium_user(email, "pro")
-            await log_revenue(
-                source="lemonsqueezy",
-                amount=total / 100,  # LemonSqueezy sends amounts in cents
-                currency=currency,
-                description=f"Order from {email}"
-            )
-            # Clear premium cache so new status takes effect
-            premium_cache[email] = True
-            logger.info(f"New premium user: {email}, paid {total/100} {currency}")
-
-    elif event == "subscription_expired" or event == "subscription_cancelled":
-        email = data.get("data", {}).get("attributes", {}).get("user_email", "")
-        if email:
-            premium_cache.pop(email, None)
-            logger.info(f"Subscription ended for: {email}")
-
+    
+    logger.info(f"Midtrans webhook: {order_id} status={transaction_status}")
+    
+    # Payment successful
+    if transaction_status in ("capture", "settlement"):
+        if fraud_status == "accept":
+            # Extract email from Midtrans notification
+            # We need to verify the transaction to get customer details
+            try:
+                snap = get_snap_client()
+                import midtransclient
+                core = midtransclient.CoreApi(
+                    is_production=settings.saas.midtrans_is_production,
+                    server_key=settings.saas.midtrans_server_key,
+                    client_key=settings.saas.midtrans_client_key,
+                )
+                tx_detail = core.transactions.status(order_id)
+                
+                # Try multiple fields for email
+                email = ""
+                if "customer_details" in tx_detail:
+                    email = tx_detail["customer_details"].get("email", "")
+                if not email:
+                    # Fallback: try notification body
+                    email = body.get("email", "")
+                
+                if email:
+                    await add_premium_user(email, "pro")
+                    amount = float(gross_amount) if gross_amount else 0
+                    await log_revenue(
+                        source="midtrans",
+                        amount=amount,
+                        currency="IDR",
+                        description=f"Pro upgrade: {email} (order: {order_id})"
+                    )
+                    premium_cache[email] = True
+                    logger.info(f"New premium user: {email}, Rp {gross_amount}")
+                else:
+                    logger.warning(f"Payment {order_id} success but no email found")
+                    
+            except Exception as e:
+                logger.error(f"Error processing payment {order_id}: {e}")
+    
+    elif transaction_status in ("deny", "cancel", "expire"):
+        logger.info(f"Payment {order_id} failed/expired: {transaction_status}")
+    
+    elif transaction_status == "pending":
+        logger.info(f"Payment {order_id} pending")
+    
     return {"status": "ok"}
 
 
@@ -362,10 +454,13 @@ async def payment_webhook(request: Request):
 
 @app.get("/pricing", response_class=HTMLResponse)
 async def pricing_page(request: Request):
-    checkout_url = settings.saas.lemonsqueezy_checkout_url
+    client_key = settings.saas.midtrans_client_key
+    is_production = settings.saas.midtrans_is_production
     return templates.TemplateResponse("pricing.html", {
         "request": request,
-        "checkout_url": checkout_url,
+        "client_key": client_key,
+        "is_production": is_production,
+        "pro_price": settings.saas.pro_price,
     })
 
 

@@ -58,9 +58,11 @@ class SaaSSettings:
     host: str = _e("SAAS_HOST", "0.0.0.0")
     port: int = int(_e("SAAS_PORT", "8000"))
     secret_key: str = _e("SAAS_SECRET_KEY", "change-me")
-    lemonsqueezy_api_key: str = _e("LEMONSQUEEZY_API_KEY")
-    lemonsqueezy_webhook_secret: str = _e("LEMONSQUEEZY_WEBHOOK_SECRET")
-    lemonsqueezy_checkout_url: str = _e("LEMONSQUEEZY_CHECKOUT_URL")
+    # Midtrans Payment Gateway (QRIS, GoPay, ShopeePay, Dana, OVO)
+    midtrans_server_key: str = _e("MIDTRANS_SERVER_KEY")
+    midtrans_client_key: str = _e("MIDTRANS_CLIENT_KEY")
+    midtrans_is_production: bool = _e("MIDTRANS_IS_PRODUCTION", "false").lower() == "true"
+    pro_price: int = int(_e("PRO_PRICE", "49900"))  # Rp 49.900/bulan
 
 
 class Settings:
