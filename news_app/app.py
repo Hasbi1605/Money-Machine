@@ -9,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import aiohttp
 from fastapi import FastAPI, Request, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -47,6 +48,8 @@ async def startup():
     await init_db()
     # Start background scheduler
     asyncio.create_task(scheduler_loop())
+    # Start self-ping keep-alive (prevents Render free tier sleep)
+    asyncio.create_task(_keep_alive())
     # Register Telegram webhook if NEWS_SITE_URL is set
     site_url = settings.news.site_url
     if site_url:
@@ -279,3 +282,24 @@ async def telegram_webhook(request: Request):
     except Exception as e:
         logger.error(f"Telegram webhook error: {e}")
         return JSONResponse({"ok": False}, status_code=400)
+
+
+# ── Keep-Alive (self-ping to prevent Render sleep) ──────────
+
+
+async def _keep_alive():
+    """Ping own /health every 10 min to prevent Render free tier from sleeping."""
+    site_url = settings.news.site_url
+    if not site_url:
+        return
+    url = f"{site_url.rstrip('/')}/health"
+    logger.info(f"🟢 Keep-alive: pinging {url} every 10 min")
+    await asyncio.sleep(30)
+    while True:
+        try:
+            async with aiohttp.ClientSession() as s:
+                async with s.get(url, timeout=aiohttp.ClientTimeout(total=10)) as r:
+                    logger.debug(f"Keep-alive ping: {r.status}")
+        except Exception:
+            pass
+        await asyncio.sleep(600)  # 10 minutes
