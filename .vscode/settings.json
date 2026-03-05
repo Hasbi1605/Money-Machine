@@ -1,0 +1,8 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "/^cd /Users/macbookair/ai-money-machine && source \\.venv/bin/activate && python3 -c \"\nfrom moviepy import TextClip\n# Test creating a simple TextClip with a macOS font\ntry:\n    t = TextClip\\(font='/System/Library/Fonts/Helvetica\\.ttc', text='Hello World', font_size=36, color='white', duration=1, size=\\(800, None\\), method='caption'\\)\n    print\\('TextClip with Helvetica works, size:', t\\.size\\)\n    t\\.close\\(\\)\nexcept Exception as e:\n    print\\('TextClip FAILED:', e\\)\n\n# Try another font path\ntry:\n    t = TextClip\\(font='/Library/Fonts/Arial\\.ttf', text='Hello World', font_size=36, color='white', duration=1\\)\n    print\\('Arial\\.ttf works'\\)\n    t\\.close\\(\\)\nexcept Exception as e:\n    print\\('Arial\\.ttf failed:', e\\)\n    # List available fonts\n    import subprocess\n    result = subprocess\\.run\\(\\['fc-list', ':lang=en', 'family'\\], capture_output=True, text=True\\)\n    fonts = set\\(result\\.stdout\\.strip\\(\\)\\.split\\('\\\\n'\\)\\[:10\\]\\)\n    print\\('Sample fonts:', fonts\\)\n\"$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
+}

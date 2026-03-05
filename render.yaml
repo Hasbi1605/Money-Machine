@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ai-writing-tools
+    runtime: python
+    region: singapore  # closest to Indonesia
+    plan: free
+    buildCommand: pip install -r requirements-saas.txt
+    startCommand: uvicorn saas_app.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false  # set manually in Render dashboard
+      - key: SAAS_SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: "3.11"
+    healthCheckPath: /health

@@ -18,7 +18,13 @@ from shared.config import settings
 
 
 class GeminiClient:
-    """Wrapper around Google GenAI SDK with rate limiting."""
+    """Wrapper around Google GenAI SDK with rate limiting and model fallback."""
+
+    # Fallback models if primary is unavailable (503)
+    FALLBACK_MODELS = [
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+    ]
 
     def __init__(self):
         self.client = genai.Client(api_key=settings.gemini.api_key)
@@ -45,33 +51,52 @@ class GeminiClient:
         system_instruction: Optional[str] = None,
         temperature: Optional[float] = None,
     ) -> str:
-        """Generate text from a prompt."""
+        """Generate text from a prompt. Tries fallback models on 503."""
         await self._rate_limit()
 
-        try:
-            config = types.GenerateContentConfig(
-                max_output_tokens=settings.gemini.max_output_tokens,
-                temperature=temperature if temperature is not None else settings.gemini.temperature,
-                system_instruction=system_instruction,
-            )
+        # Build list of models to try: primary + fallbacks
+        models_to_try = [self.model_name] + [
+            m for m in self.FALLBACK_MODELS if m != self.model_name
+        ]
 
-            response = await asyncio.to_thread(
-                self.client.models.generate_content,
-                model=self.model_name,
-                contents=prompt,
-                config=config,
-            )
+        config = types.GenerateContentConfig(
+            max_output_tokens=settings.gemini.max_output_tokens,
+            temperature=temperature if temperature is not None else settings.gemini.temperature,
+            system_instruction=system_instruction,
+        )
 
-            if response and response.text:
-                logger.debug(f"Generated {len(response.text)} chars")
-                return response.text.strip()
-            else:
-                logger.warning("Empty response from Gemini")
-                return ""
+        last_error = None
+        for model in models_to_try:
+            try:
+                response = await asyncio.to_thread(
+                    self.client.models.generate_content,
+                    model=model,
+                    contents=prompt,
+                    config=config,
+                )
 
-        except Exception as e:
-            logger.error(f"Gemini API error: {e}")
-            raise
+                if response and response.text:
+                    if model != self.model_name:
+                        logger.info(f"Used fallback model: {model}")
+                    logger.debug(f"Generated {len(response.text)} chars")
+                    return response.text.strip()
+                else:
+                    logger.warning(f"Empty response from {model}")
+                    continue
+
+            except Exception as e:
+                err_str = str(e)
+                last_error = e
+                if "503" in err_str or "UNAVAILABLE" in err_str:
+                    logger.warning(f"Model {model} unavailable (503), trying next...")
+                    continue
+                else:
+                    logger.error(f"Gemini API error ({model}): {e}")
+                    raise
+
+        # All models failed with 503
+        logger.error(f"All models unavailable: {last_error}")
+        raise last_error
 
     async def generate_json(
         self,

@@ -49,6 +49,17 @@ async def init_db():
                 niche TEXT
             );
 
+            CREATE TABLE IF NOT EXISTS social_posts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL,
+                language TEXT DEFAULT 'id',
+                niche TEXT,
+                platforms TEXT,
+                image_path TEXT,
+                status TEXT DEFAULT 'created',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE TABLE IF NOT EXISTS saas_users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE,
@@ -116,6 +127,21 @@ async def log_video(
         return cursor.lastrowid
 
 
+async def log_social_post(
+    title: str, language: str, niche: str,
+    platforms: str = "", image_path: str = ""
+) -> int:
+    """Log a generated social post."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            """INSERT INTO social_posts (title, language, niche, platforms, image_path, status)
+               VALUES (?, ?, ?, ?, ?, 'created')""",
+            (title, language, niche, platforms, image_path)
+        )
+        await db.commit()
+        return cursor.lastrowid
+
+
 async def log_pipeline_run(pipeline: str) -> int:
     """Start a pipeline run log."""
     async with aiosqlite.connect(DB_PATH) as db:
@@ -144,7 +170,7 @@ async def get_stats() -> Dict[str, Any]:
         db.row_factory = aiosqlite.Row
 
         articles = await db.execute_fetchall("SELECT COUNT(*) as c FROM articles WHERE status='published'")
-        videos = await db.execute_fetchall("SELECT COUNT(*) as c FROM videos WHERE status='uploaded'")
+        social = await db.execute_fetchall("SELECT COUNT(*) as c FROM social_posts")
         errors = await db.execute_fetchall(
             "SELECT COUNT(*) as c FROM pipeline_runs WHERE status='error' AND date(started_at) = date('now')"
         )
@@ -154,7 +180,7 @@ async def get_stats() -> Dict[str, Any]:
 
         return {
             "total_articles": articles[0][0] if articles else 0,
-            "total_videos": videos[0][0] if videos else 0,
+            "total_social_posts": social[0][0] if social else 0,
             "errors_today": errors[0][0] if errors else 0,
             "runs_today": runs_today[0][0] if runs_today else 0,
         }

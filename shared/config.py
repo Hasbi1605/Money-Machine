@@ -33,10 +33,6 @@ class WordPressSettings:
     password: str = _e("WP_PASSWORD")
 
 
-class MediumSettings:
-    token: str = _e("MEDIUM_TOKEN")
-
-
 class BloggerSettings:
     blog_id: str = _e("BLOGGER_BLOG_ID")
     service_account_json: str = _e("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -47,11 +43,6 @@ class AffiliateSettings:
     tokopedia_id: str = _e("TOKOPEDIA_AFFILIATE_ID")
     shopee_id: str = _e("SHOPEE_AFFILIATE_ID")
     alfagift_id: str = _e("ALFAGIFT_AFFILIATE_ID")
-
-
-class YouTubeSettings:
-    client_id: str = _e("YOUTUBE_CLIENT_ID")
-    client_secret: str = _e("YOUTUBE_CLIENT_SECRET")
 
 
 class PexelsSettings:
@@ -74,10 +65,8 @@ class SaaSSettings:
 class Settings:
     gemini = GeminiSettings()
     wordpress = WordPressSettings()
-    medium = MediumSettings()
     blogger = BloggerSettings()
     affiliate = AffiliateSettings()
-    youtube = YouTubeSettings()
     pexels = PexelsSettings()
     telegram = TelegramSettings()
     saas = SaaSSettings()
@@ -96,8 +85,7 @@ class Settings:
     def ensure_dirs(self):
         for d in [self.output_dir, self.logs_dir, self.data_dir,
                   self.output_dir / "articles",
-                  self.output_dir / "videos",
-                  self.output_dir / "thumbnails"]:
+                  self.output_dir / "social"]:
             d.mkdir(parents=True, exist_ok=True)
 
 

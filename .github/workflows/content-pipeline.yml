@@ -1,16 +1,25 @@
-name: Blog Pipeline - Auto Generate & Publish
+name: Content Pipeline - Blog & Social Auto Generate
 
 on:
   schedule:
-    # Run twice daily: 6 AM and 6 PM UTC (1 PM and 1 AM WIB)
-    # ~3-5 min per run × 60 runs/month = ~180-300 min (within 2000 min free tier)
+    # Blog: 6 AM and 6 PM UTC (1 PM and 1 AM WIB)
     - cron: "0 6,18 * * *"
-  workflow_dispatch: # Manual trigger from GitHub UI
+  workflow_dispatch:
+    inputs:
+      pipeline:
+        description: "Which pipeline to run"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - blog
+          - social
+          - both
 
 jobs:
-  generate-blog:
+  generate-content:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -26,12 +35,13 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Create required directories
-        run: mkdir -p output/articles output/videos output/thumbnails logs data
+        run: mkdir -p output/articles output/social logs data
 
-      - name: Setup Google Service Account
+      - name: Setup credentials
         run: |
-          mkdir -p filejson
+          mkdir -p filejson data
           echo '${{ secrets.GOOGLE_SA_JSON_CONTENT }}' > filejson/propane-fusion-441822-a5-5ad666121cae.json
+          echo '${{ secrets.BLOGGER_TOKEN_JSON }}' > data/blogger_token.json
 
       - name: Initialize database
         env:
@@ -39,14 +49,13 @@ jobs:
         run: python -c "import asyncio; from shared.database import init_db; asyncio.run(init_db())"
 
       - name: Run blog pipeline
+        if: ${{ github.event_name == 'schedule' || github.event.inputs.pipeline == 'blog' || github.event.inputs.pipeline == 'both' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           BLOGGER_BLOG_ID: ${{ secrets.BLOGGER_BLOG_ID }}
           GOOGLE_SERVICE_ACCOUNT_JSON: filejson/propane-fusion-441822-a5-5ad666121cae.json
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          AMAZON_AFFILIATE_TAG: ${{ secrets.AMAZON_AFFILIATE_TAG }}
-          TOKOPEDIA_AFFILIATE_ID: ${{ secrets.TOKOPEDIA_AFFILIATE_ID }}
           SHOPEE_AFFILIATE_ID: ${{ secrets.SHOPEE_AFFILIATE_ID }}
           ALFAGIFT_AFFILIATE_ID: ${{ secrets.ALFAGIFT_AFFILIATE_ID }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
@@ -54,12 +63,31 @@ jobs:
           TIMEZONE: "Asia/Jakarta"
         run: python main.py --blog
 
+      - name: Run social pipeline
+        if: ${{ github.event.inputs.pipeline == 'social' || github.event.inputs.pipeline == 'both' }}
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          CONTENT_LANGUAGES: "en,id"
+          TIMEZONE: "Asia/Jakarta"
+        run: python main.py --social
+
       - name: Upload generated articles
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: articles-${{ github.run_number }}
           path: output/articles/
+          retention-days: 30
+
+      - name: Upload social content
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: social-${{ github.run_number }}
+          path: output/social/
           retention-days: 30
 
       - name: Upload logs

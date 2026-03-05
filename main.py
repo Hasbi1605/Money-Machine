@@ -5,7 +5,7 @@ Central scheduler that runs all automation pipelines on schedule.
 Usage:
     python main.py                  # Run all pipelines on schedule
     python main.py --blog           # Run blog pipeline once
-    python main.py --video          # Run video pipeline once
+    python main.py --social         # Run social content pipeline once
     python main.py --saas           # Start SaaS server only
     python main.py --dashboard      # Start dashboard only
     python main.py --all-servers    # Start SaaS + Dashboard servers
@@ -32,11 +32,11 @@ async def run_blog_once():
     return await run_blog_cycle()
 
 
-async def run_video_once():
-    """Run the video pipeline once."""
-    from video_engine.orchestrator import run_video_cycle
-    logger.info("🚀 Running video pipeline (one-time)")
-    return await run_video_cycle()
+async def run_social_once():
+    """Run the social content pipeline once."""
+    from social_engine.orchestrator import run_social_cycle
+    logger.info("🚀 Running social content pipeline (one-time)")
+    return await run_social_cycle()
 
 
 def start_saas_server():
@@ -99,12 +99,12 @@ async def run_scheduled():
         next_run_time=datetime.now(),  # Run immediately on start
     )
 
-    # Video pipeline - every 24 hours
+    # Social content pipeline - every 8 hours (3x/day)
     scheduler.add_job(
-        run_video_once,
-        IntervalTrigger(hours=24),
-        id="video_pipeline",
-        name="Video Generation",
+        run_social_once,
+        IntervalTrigger(hours=8),
+        id="social_pipeline",
+        name="Social Content Generation",
     )
 
     # Daily report - every day at 23:59
@@ -126,7 +126,7 @@ async def run_scheduled():
         f"📅 Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
         f"🌐 Languages: {', '.join(settings.get_languages())}\n"
         f"📝 Blog: Every 12 hours\n"
-        f"🎬 Video: Every 24 hours\n"
+        f"📸 Social: Every 8 hours\n"
         f"📊 Report: Daily at 23:59"
     )
 
@@ -143,7 +143,7 @@ async def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(description="AI Money Machine")
     parser.add_argument("--blog", action="store_true", help="Run blog pipeline once")
-    parser.add_argument("--video", action="store_true", help="Run video pipeline once")
+    parser.add_argument("--social", action="store_true", help="Run social content pipeline once")
     parser.add_argument("--saas", action="store_true", help="Start SaaS server only")
     parser.add_argument("--dashboard", action="store_true", help="Start dashboard only")
     parser.add_argument("--all-servers", action="store_true", help="Start SaaS + Dashboard")
@@ -162,8 +162,8 @@ async def main():
 
     if args.blog:
         await run_blog_once()
-    elif args.video:
-        await run_video_once()
+    elif args.social:
+        await run_social_once()
     elif args.saas:
         start_saas_server()
     elif args.dashboard:

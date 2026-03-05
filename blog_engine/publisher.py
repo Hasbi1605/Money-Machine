@@ -98,69 +98,6 @@ class WordPressPublisher:
         return tag_ids
 
 
-class MediumPublisher:
-    """Publish articles to Medium via API."""
-
-    def __init__(self):
-        self.token = settings.medium.token
-        self.enabled = bool(self.token)
-        self.base_url = "https://api.medium.com/v1"
-
-    async def _get_user_id(self) -> Optional[str]:
-        """Get the authenticated user's ID."""
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-        }
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(f"{self.base_url}/me") as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("data", {}).get("id")
-        return None
-
-    async def publish(self, article: Dict) -> Optional[str]:
-        """Publish an article to Medium. Returns the post URL."""
-        if not self.enabled:
-            logger.debug("Medium publishing disabled (no token)")
-            return None
-
-        user_id = await self._get_user_id()
-        if not user_id:
-            logger.error("Could not get Medium user ID")
-            return None
-
-        headers = {
-            "Authorization": f"Bearer {self.token}",
-            "Content-Type": "application/json",
-        }
-
-        payload = {
-            "title": article.get("title", "Untitled"),
-            "contentFormat": "markdown",
-            "content": article.get("content", ""),
-            "tags": article.get("tags", [])[:5],  # Medium allows max 5 tags
-            "publishStatus": "public",
-        }
-
-        try:
-            async with aiohttp.ClientSession(headers=headers) as session:
-                url = f"{self.base_url}/users/{user_id}/posts"
-                async with session.post(url, json=payload) as resp:
-                    if resp.status in (200, 201):
-                        data = await resp.json()
-                        post_url = data.get("data", {}).get("url", "")
-                        logger.info(f"Published to Medium: {post_url}")
-                        return post_url
-                    else:
-                        error = await resp.text()
-                        logger.error(f"Medium publish failed ({resp.status}): {error[:200]}")
-                        return None
-        except Exception as e:
-            logger.error(f"Medium publish error: {e}")
-            return None
-
-
 class BloggerPublisher:
     """Publish articles to Blogger/Blogspot via OAuth2 or Service Account."""
 
@@ -314,7 +251,6 @@ class MultiPublisher:
 
     def __init__(self):
         self.wordpress = WordPressPublisher()
-        self.medium = MediumPublisher()
         self.blogger = BloggerPublisher()
 
     async def publish_all(self, article: Dict) -> Dict[str, Optional[str]]:
@@ -323,9 +259,6 @@ class MultiPublisher:
 
         if self.wordpress.enabled:
             results["wordpress"] = await self.wordpress.publish(article)
-
-        if self.medium.enabled:
-            results["medium"] = await self.medium.publish(article)
 
         if self.blogger.enabled:
             results["blogger"] = await self.blogger.publish(article)
