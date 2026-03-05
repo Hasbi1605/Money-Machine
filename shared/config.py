@@ -80,6 +80,10 @@ class TelegramSettings:
     chat_id: str = _e("TELEGRAM_CHAT_ID")
 
 
+class NewsSettings:
+    site_url: str = _e("NEWS_SITE_URL")  # e.g. https://cikalnews.onrender.com
+
+
 class SaaSSettings:
     host: str = _e("SAAS_HOST", "0.0.0.0")
     port: int = int(_e("SAAS_PORT", "8000"))
@@ -101,6 +105,7 @@ class Settings:
     affiliate = AffiliateSettings()
     pexels = PexelsSettings()
     telegram = TelegramSettings()
+    news = NewsSettings()
     saas = SaaSSettings()
 
     content_languages: str = _e("CONTENT_LANGUAGES", "en,id")

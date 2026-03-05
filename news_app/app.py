@@ -24,7 +24,9 @@ from shared.database import (
     get_trending_news,
     search_news,
 )
+from shared.config import settings
 from news_app.scheduler import scheduler_loop, run_news_pipeline
+from news_app.telegram_bot import handle_update, set_webhook, send_message
 
 # ── App Setup ─────────────────────────────────────────────────
 
@@ -45,6 +47,16 @@ async def startup():
     await init_db()
     # Start background scheduler
     asyncio.create_task(scheduler_loop())
+    # Register Telegram webhook if NEWS_SITE_URL is set
+    site_url = settings.news.site_url
+    if site_url:
+        ok = await set_webhook(site_url)
+        if ok:
+            logger.info(f"Telegram webhook registered for {site_url}")
+        else:
+            logger.warning("Telegram webhook registration failed — bot commands won't work")
+    else:
+        logger.info("NEWS_SITE_URL not set — Telegram webhook not registered (use polling for local dev)")
 
 
 # ── Category Config ───────────────────────────────────────────
@@ -251,3 +263,19 @@ async def trigger_generate(
     categories = [category] if category else None
     asyncio.create_task(run_news_pipeline(categories=categories, articles_per_cat=count))
     return JSONResponse({"status": "started", "categories": categories or "all", "count": count})
+
+
+# ── Telegram Webhook ──────────────────────────────────────────
+
+
+@app.post("/api/telegram")
+async def telegram_webhook(request: Request):
+    """Receive Telegram bot updates via webhook."""
+    try:
+        data = await request.json()
+        # Process in background so we respond fast to Telegram
+        asyncio.create_task(handle_update(data))
+        return JSONResponse({"ok": True})
+    except Exception as e:
+        logger.error(f"Telegram webhook error: {e}")
+        return JSONResponse({"ok": False}, status_code=400)
