@@ -3,6 +3,7 @@ Shared Gemini API client.
 Used by all pipelines (blog, video, SaaS).
 Handles rate limiting, retries, and structured output.
 Uses the new google.genai SDK.
+Falls back to Groq / OpenRouter when Gemini quota exhausted.
 """
 
 import asyncio
@@ -16,6 +17,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from loguru import logger
 
 from shared.config import settings
+from shared.backup_llm import backup_clients
 
 
 class GeminiClient:
@@ -147,8 +149,22 @@ class GeminiClient:
                     logger.error(f"Gemini API error ({model}): {e}")
                     raise
 
-        # All models failed
-        logger.error(f"All models failed: {last_error}")
+        # All Gemini models failed — try backup LLM providers (Groq, OpenRouter)
+        for backup in backup_clients:
+            if not backup.is_configured:
+                continue
+            logger.info(f"Trying backup provider: {backup.name}...")
+            result = await backup.generate(
+                prompt=prompt,
+                system_instruction=system_instruction,
+                temperature=temperature if temperature is not None else settings.gemini.temperature,
+            )
+            if result:
+                logger.success(f"Backup {backup.name} succeeded ({len(result)} chars)")
+                return result
+
+        # All providers failed
+        logger.error(f"All providers failed (Gemini + backups): {last_error}")
         raise last_error
 
     async def generate_json(

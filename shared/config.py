@@ -27,6 +27,23 @@ class GeminiSettings:
     rpm_limit: int = 15
 
 
+class GroqSettings:
+    api_key: str = _e("GROQ_API_KEY")
+    model_name: str = "llama-3.3-70b-versatile"
+    fallback_model: str = "llama-3.1-8b-instant"
+    base_url: str = "https://api.groq.com/openai/v1"
+    max_tokens: int = 8192
+    rpm_limit: int = 30
+
+
+class OpenRouterSettings:
+    api_key: str = _e("OPENROUTER_API_KEY")
+    model_name: str = "nvidia/nemotron-3-nano-30b-a3b:free"
+    fallback_model: str = "arcee-ai/trinity-mini:free"
+    base_url: str = "https://openrouter.ai/api/v1"
+    max_tokens: int = 8192
+
+
 class WordPressSettings:
     url: str = _e("WP_URL")
     username: str = _e("WP_USERNAME")
@@ -67,6 +84,8 @@ class SaaSSettings:
 
 class Settings:
     gemini = GeminiSettings()
+    groq = GroqSettings()
+    openrouter = OpenRouterSettings()
     wordpress = WordPressSettings()
     blogger = BloggerSettings()
     affiliate = AffiliateSettings()
