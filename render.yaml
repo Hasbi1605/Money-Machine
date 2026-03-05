@@ -33,6 +33,8 @@ services:
         sync: false
       - key: GROQ_API_KEY
         sync: false
+      - key: GITHUB_MODELS_PAT
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
       - key: PEXELS_API_KEY

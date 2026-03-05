@@ -1,7 +1,7 @@
 """
-Backup LLM clients (Groq + OpenRouter).
+Backup LLM clients (Groq + GitHub Models + OpenRouter).
 Used when Gemini API quota is exhausted.
-Both use OpenAI-compatible API format via aiohttp.
+All use OpenAI-compatible API format via aiohttp.
 """
 
 import asyncio
@@ -160,6 +160,15 @@ groq_client = BackupLLMClient(
     rpm_limit=settings.groq.rpm_limit,
 )
 
+github_models_client = BackupLLMClient(
+    name="GitHub-Models",
+    api_key=settings.github_models.api_key,
+    base_url=settings.github_models.base_url,
+    models=[settings.github_models.model_name, settings.github_models.fallback_model],
+    max_tokens=settings.github_models.max_tokens,
+    rpm_limit=settings.github_models.rpm_limit,
+)
+
 openrouter_client = BackupLLMClient(
     name="OpenRouter",
     api_key=settings.openrouter.api_key,
@@ -169,5 +178,5 @@ openrouter_client = BackupLLMClient(
     rpm_limit=20,  # OpenRouter free: 20 req/min
 )
 
-# Ordered list of backup clients
-backup_clients: List[BackupLLMClient] = [groq_client, openrouter_client]
+# Ordered list of backup clients: Groq (fastest) → GitHub Models (GPT-4.1) → OpenRouter (free)
+backup_clients: List[BackupLLMClient] = [groq_client, github_models_client, openrouter_client]

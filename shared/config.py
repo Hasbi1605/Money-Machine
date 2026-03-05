@@ -36,6 +36,15 @@ class GroqSettings:
     rpm_limit: int = 30
 
 
+class GitHubModelsSettings:
+    api_key: str = _e("GITHUB_MODELS_PAT")
+    model_name: str = "gpt-4.1"
+    fallback_model: str = "gpt-4.1-mini"
+    base_url: str = "https://models.inference.ai.azure.com"
+    max_tokens: int = 4000
+    rpm_limit: int = 15
+
+
 class OpenRouterSettings:
     api_key: str = _e("OPENROUTER_API_KEY")
     model_name: str = "nvidia/nemotron-3-nano-30b-a3b:free"
@@ -85,6 +94,7 @@ class SaaSSettings:
 class Settings:
     gemini = GeminiSettings()
     groq = GroqSettings()
+    github_models = GitHubModelsSettings()
     openrouter = OpenRouterSettings()
     wordpress = WordPressSettings()
     blogger = BloggerSettings()
