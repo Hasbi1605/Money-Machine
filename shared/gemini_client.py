@@ -2,31 +2,27 @@
 Shared Gemini API client.
 Used by all pipelines (blog, video, SaaS).
 Handles rate limiting, retries, and structured output.
+Uses the new google.genai SDK.
 """
 
 import asyncio
 import time
 from typing import Optional, Dict, Any, List
 
-import google.generativeai as genai
-from tenacity import retry, stop_after_attempt, wait_exponential
+from google import genai
+from google.genai import types
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from loguru import logger
 
 from shared.config import settings
 
 
 class GeminiClient:
-    """Wrapper around Google Generative AI SDK with rate limiting."""
+    """Wrapper around Google GenAI SDK with rate limiting."""
 
     def __init__(self):
-        genai.configure(api_key=settings.gemini.api_key)
-        self.model = genai.GenerativeModel(
-            model_name=settings.gemini.model_name,
-            generation_config=genai.GenerationConfig(
-                max_output_tokens=settings.gemini.max_output_tokens,
-                temperature=settings.gemini.temperature,
-            ),
-        )
+        self.client = genai.Client(api_key=settings.gemini.api_key)
+        self.model_name = settings.gemini.model_name
         self._last_request_time = 0.0
         self._request_interval = 60.0 / settings.gemini.rpm_limit  # seconds between requests
         self._lock = asyncio.Lock()
@@ -42,7 +38,7 @@ class GeminiClient:
                 await asyncio.sleep(wait_time)
             self._last_request_time = time.time()
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=4, max=60))
+    @retry(stop=stop_after_attempt(5), wait=wait_exponential(min=10, max=120))
     async def generate(
         self,
         prompt: str,
@@ -53,20 +49,17 @@ class GeminiClient:
         await self._rate_limit()
 
         try:
-            model = self.model
-            if system_instruction or temperature is not None:
-                config = genai.GenerationConfig(
-                    max_output_tokens=settings.gemini.max_output_tokens,
-                    temperature=temperature or settings.gemini.temperature,
-                )
-                model = genai.GenerativeModel(
-                    model_name=settings.gemini.model_name,
-                    generation_config=config,
-                    system_instruction=system_instruction,
-                )
+            config = types.GenerateContentConfig(
+                max_output_tokens=settings.gemini.max_output_tokens,
+                temperature=temperature if temperature is not None else settings.gemini.temperature,
+                system_instruction=system_instruction,
+            )
 
             response = await asyncio.to_thread(
-                model.generate_content, prompt
+                self.client.models.generate_content,
+                model=self.model_name,
+                contents=prompt,
+                config=config,
             )
 
             if response and response.text:
