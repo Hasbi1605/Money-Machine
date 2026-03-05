@@ -60,6 +60,7 @@ class SaaSSettings:
     secret_key: str = _e("SAAS_SECRET_KEY", "change-me")
     lemonsqueezy_api_key: str = _e("LEMONSQUEEZY_API_KEY")
     lemonsqueezy_webhook_secret: str = _e("LEMONSQUEEZY_WEBHOOK_SECRET")
+    lemonsqueezy_checkout_url: str = _e("LEMONSQUEEZY_CHECKOUT_URL")
 
 
 class Settings:

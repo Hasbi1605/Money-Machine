@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pricing - AI Writing Tools Pro</title>
+    <meta name="description" content="Upgrade to AI Writing Tools Pro for unlimited AI generations. Resume builder, caption generator, and email writer." />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        color: #e0e0e0;
+        min-height: 100vh;
+      }
+      .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+      
+      /* Nav */
+      nav { text-align: center; padding: 20px; }
+      nav a { color: #b388ff; text-decoration: none; font-size: 0.95rem; }
+      nav a:hover { color: #fff; }
+
+      /* Header */
+      header { text-align: center; padding: 40px 20px 30px; }
+      h1 {
+        font-size: 2.5rem;
+        background: linear-gradient(90deg, #00d2ff, #7b2ff7);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 10px;
+      }
+      .subtitle { font-size: 1.1rem; color: #a0a0a0; margin-bottom: 20px; }
+
+      /* Pricing Cards */
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 30px;
+        padding: 30px 0;
+      }
+      .plan-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 40px 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+      .plan-card.featured {
+        border-color: #7b2ff7;
+        box-shadow: 0 20px 40px rgba(123, 47, 247, 0.2);
+        transform: scale(1.03);
+      }
+      .plan-card.featured::before {
+        content: "MOST POPULAR";
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        padding: 4px 20px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: white;
+        letter-spacing: 1px;
+      }
+      .plan-name {
+        font-size: 1.3rem;
+        color: #fff;
+        margin-bottom: 10px;
+        font-weight: 600;
+      }
+      .plan-price {
+        font-size: 3rem;
+        font-weight: 800;
+        color: #fff;
+        margin-bottom: 5px;
+      }
+      .plan-price span { font-size: 1rem; font-weight: 400; color: #a0a0a0; }
+      .plan-period { color: #a0a0a0; font-size: 0.9rem; margin-bottom: 25px; }
+
+      /* Features */
+      .features { list-style: none; text-align: left; margin-bottom: 30px; }
+      .features li {
+        padding: 8px 0;
+        color: #ccc;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .features li::before {
+        content: "✓";
+        color: #00d2ff;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
+      .features li.disabled { color: #666; }
+      .features li.disabled::before { content: "✗"; color: #666; }
+
+      /* CTA Buttons */
+      .btn {
+        display: inline-block;
+        padding: 14px 40px;
+        border-radius: 25px;
+        font-weight: 600;
+        font-size: 1rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        border: none;
+      }
+      .btn-primary {
+        background: linear-gradient(90deg, #7b2ff7, #00d2ff);
+        color: white;
+      }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(123, 47, 247, 0.3);
+      }
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      /* FAQ */
+      .faq { padding: 40px 0; }
+      .faq h2 { text-align: center; font-size: 1.8rem; color: #fff; margin-bottom: 30px; }
+      .faq-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 15px;
+      }
+      .faq-item h3 { color: #b388ff; font-size: 1rem; margin-bottom: 8px; }
+      .faq-item p { color: #a0a0a0; font-size: 0.9rem; line-height: 1.6; }
+
+      /* Footer */
+      footer { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
+      footer a { color: #7b2ff7; text-decoration: none; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/">← Back to Tools</a>
+    </nav>
+    
+    <header>
+      <h1>Choose Your Plan</h1>
+      <p class="subtitle">Unlock the full power of AI writing tools</p>
+    </header>
+
+    <div class="container">
+      <div class="pricing-grid">
+        <!-- Free Plan -->
+        <div class="plan-card">
+          <div class="plan-name">Free</div>
+          <div class="plan-price">$0</div>
+          <div class="plan-period">forever</div>
+          <ul class="features">
+            <li>3 generations per day</li>
+            <li>AI Resume Builder</li>
+            <li>AI Caption Generator</li>
+            <li>AI Email Writer</li>
+            <li class="disabled">Priority processing</li>
+            <li class="disabled">No daily limits</li>
+          </ul>
+          <a href="/" class="btn btn-secondary">Get Started Free</a>
+        </div>
+
+        <!-- Pro Plan -->
+        <div class="plan-card featured">
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">$4<span>.99/mo</span></div>
+          <div class="plan-period">billed monthly</div>
+          <ul class="features">
+            <li>100 generations per day</li>
+            <li>AI Resume Builder</li>
+            <li>AI Caption Generator (up to 30)</li>
+            <li>AI Email Writer (3 versions)</li>
+            <li>Priority processing</li>
+            <li>Email support</li>
+          </ul>
+          {% if checkout_url %}
+          <a href="{{ checkout_url }}" class="btn btn-primary" target="_blank">Upgrade to Pro</a>
+          {% else %}
+          <span class="btn btn-primary" style="opacity: 0.6; cursor: default;">Coming Soon</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="faq">
+        <h2>Frequently Asked Questions</h2>
+        
+        <div class="faq-item">
+          <h3>How does payment work?</h3>
+          <p>We use LemonSqueezy for secure payment processing. You can pay with credit card and cancel anytime.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>Can I cancel anytime?</h3>
+          <p>Yes! You can cancel your subscription at any time. You'll keep access until the end of your billing period.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>What AI model do you use?</h3>
+          <p>We use Google's latest Gemini AI models, the same technology powering Google's products.</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>Is my data safe?</h3>
+          <p>We don't store your generated content. All processing happens in real-time and results are delivered directly to you.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>AI Writing Tools &copy; 2024 | <a href="/">Home</a> | <a href="/pricing">Pricing</a></p>
+    </footer>
+  </body>
+</html>

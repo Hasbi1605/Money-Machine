@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from shared.gemini_client import gemini
 from shared.config import settings
+from shared.database import init_db, add_premium_user, is_premium_user, log_revenue
 
 # ---------------------
 # App Setup
@@ -31,6 +32,11 @@ app = FastAPI(
     description="Free AI-powered writing tools",
     version="1.0.0",
 )
+
+
+@app.on_event("startup")
+async def startup():
+    await init_db()
 
 SAAS_DIR = Path(__file__).parent
 TEMPLATES_DIR = SAAS_DIR / "templates"
@@ -47,7 +53,9 @@ if STATIC_DIR.exists():
 # ---------------------
 
 FREE_USES_PER_DAY = 3
+PREMIUM_USES_PER_DAY = 100
 usage_tracker: dict = {}  # IP -> {"date": date, "count": int}
+premium_cache: dict = {}  # email -> is_premium (cached for the session)
 
 
 def check_rate_limit(ip: str) -> tuple[bool, int]:
@@ -58,7 +66,35 @@ def check_rate_limit(ip: str) -> tuple[bool, int]:
         usage_tracker[ip] = {"date": today, "count": 0}
 
     count = usage_tracker[ip]["count"]
-    remaining = FREE_USES_PER_DAY - count
+    limit = usage_tracker[ip].get("limit", FREE_USES_PER_DAY)
+    remaining = limit - count
+
+    if remaining <= 0:
+        return False, 0
+
+    return True, remaining
+
+
+async def check_premium_rate_limit(ip: str, email: str = "") -> tuple[bool, int]:
+    """Check rate limit with premium support."""
+    today = date.today().isoformat()
+
+    if ip not in usage_tracker or usage_tracker[ip]["date"] != today:
+        usage_tracker[ip] = {"date": today, "count": 0, "limit": FREE_USES_PER_DAY}
+
+    # Check premium status
+    if email and email not in premium_cache:
+        try:
+            premium_cache[email] = await is_premium_user(email)
+        except Exception:
+            premium_cache[email] = False
+
+    if email and premium_cache.get(email):
+        usage_tracker[ip]["limit"] = PREMIUM_USES_PER_DAY
+
+    count = usage_tracker[ip]["count"]
+    limit = usage_tracker[ip].get("limit", FREE_USES_PER_DAY)
+    remaining = limit - count
 
     if remaining <= 0:
         return False, 0
@@ -294,11 +330,43 @@ async def payment_webhook(request: Request):
     event = data.get("meta", {}).get("event_name", "")
 
     if event == "order_created":
+        attrs = data.get("data", {}).get("attributes", {})
+        email = attrs.get("user_email", "")
+        total = attrs.get("total", 0)
+        currency = attrs.get("currency", "USD")
+
+        if email:
+            await add_premium_user(email, "pro")
+            await log_revenue(
+                source="lemonsqueezy",
+                amount=total / 100,  # LemonSqueezy sends amounts in cents
+                currency=currency,
+                description=f"Order from {email}"
+            )
+            # Clear premium cache so new status takes effect
+            premium_cache[email] = True
+            logger.info(f"New premium user: {email}, paid {total/100} {currency}")
+
+    elif event == "subscription_expired" or event == "subscription_cancelled":
         email = data.get("data", {}).get("attributes", {}).get("user_email", "")
-        logger.info(f"New payment from: {email}")
-        # TODO: Add premium user to database
+        if email:
+            premium_cache.pop(email, None)
+            logger.info(f"Subscription ended for: {email}")
 
     return {"status": "ok"}
+
+
+# ---------------------
+# Pricing Page
+# ---------------------
+
+@app.get("/pricing", response_class=HTMLResponse)
+async def pricing_page(request: Request):
+    checkout_url = settings.saas.lemonsqueezy_checkout_url
+    return templates.TemplateResponse("pricing.html", {
+        "request": request,
+        "checkout_url": checkout_url,
+    })
 
 
 # ---------------------

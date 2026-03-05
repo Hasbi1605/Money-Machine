@@ -164,6 +164,41 @@ async def finish_pipeline_run(run_id: int, items: int = 0, error: str = ""):
         await db.commit()
 
 
+async def add_premium_user(email: str, plan: str = "pro") -> int:
+    """Add or upgrade a user to premium."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT INTO saas_users (email, plan, created_at)
+               VALUES (?, ?, ?)
+               ON CONFLICT(email) DO UPDATE SET plan=?""",
+            (email, plan, datetime.utcnow().isoformat(), plan)
+        )
+        await db.commit()
+        logger.info(f"Premium user added/updated: {email} -> {plan}")
+        return 1
+
+
+async def is_premium_user(email: str) -> bool:
+    """Check if a user has premium access."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        row = await db.execute_fetchall(
+            "SELECT plan FROM saas_users WHERE email=? AND plan != 'free'",
+            (email,)
+        )
+        return bool(row)
+
+
+async def log_revenue(source: str, amount: float, currency: str = "USD", description: str = ""):
+    """Log a revenue event."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO revenue (source, amount, currency, description) VALUES (?, ?, ?, ?)",
+            (source, amount, currency, description)
+        )
+        await db.commit()
+        logger.info(f"Revenue logged: {source} ${amount} {currency}")
+
+
 async def get_stats() -> Dict[str, Any]:
     """Get overall statistics."""
     async with aiosqlite.connect(DB_PATH) as db:
