@@ -17,9 +17,9 @@ from shared.config import settings
 
 CATEGORY_PROMPTS = {
     "bola": {
-        "style": "jurnalis olahraga yang antusias dan informatif",
+        "style": "jurnalis sepak bola yang antusias, informatif, dan paham dunia sepak bola",
         "tone": "energetic, passionate, factual",
-        "extra": "Gunakan istilah sepak bola yang tepat. Sertakan statistik jika relevan.",
+        "extra": "Fokus HANYA pada sepak bola (football/soccer). Gunakan istilah sepak bola yang tepat (lini belakang, playmaker, clean sheet, hat-trick, dst). Sertakan statistik pertandingan, skor, klasemen, atau data transfer jika relevan. Jangan bahas olahraga lain (badminton, basket, tenis, dll).",
     },
     "teknologi": {
         "style": "tech journalist yang paham teknologi dan gadget",

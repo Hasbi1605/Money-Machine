@@ -85,17 +85,11 @@ CATEGORY_FALLBACKS = {
 async def get_article_thumbnail(query: str, category: str, ai_prompt: str = "") -> str:
     """
     Multi-source thumbnail strategy:
-    1. Pollinations AI (most relevant, free, no API key)
-    2. Pexels stock photo (fallback)
+    1. Pexels stock photo (reliable, proven)
+    2. Pollinations AI (fallback if Pexels finds nothing)
     3. Category-specific default (final fallback)
     """
-    # Strategy 1: AI Generated via Pollinations
-    if ai_prompt and ai_prompt.strip():
-        prompt = f"photorealistic news photograph, editorial style, {ai_prompt}"
-        logger.info(f"Using Pollinations AI for thumbnail: {ai_prompt[:50]}...")
-        return generate_pollinations_url(prompt)
-
-    # Strategy 2: Pexels stock photo
+    # Strategy 1: Pexels stock photo (most reliable)
     url = await find_thumbnail_pexels(query)
     if url:
         return url
@@ -112,6 +106,12 @@ async def get_article_thumbnail(query: str, category: str, ai_prompt: str = "") 
     url = await find_thumbnail_pexels(simple)
     if url:
         return url
+
+    # Strategy 2: AI Generated via Pollinations (fallback)
+    if ai_prompt and ai_prompt.strip():
+        prompt = f"photorealistic news photograph, editorial style, {ai_prompt}"
+        logger.info(f"Pexels failed, using Pollinations AI: {ai_prompt[:50]}...")
+        return generate_pollinations_url(prompt)
 
     # Strategy 3: Fallback to static URL
     return CATEGORY_FALLBACKS.get(category, CATEGORY_FALLBACKS["teknologi"])

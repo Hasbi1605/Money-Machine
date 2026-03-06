@@ -74,7 +74,7 @@ async def startup():
 # ── Category Config ───────────────────────────────────────────
 
 CATEGORIES = {
-    "bola": {"label": "Bola", "icon": "⚽", "color": "#27ae60"},
+    "bola": {"label": "Sepak Bola", "icon": "⚽", "color": "#27ae60"},
     "teknologi": {"label": "Teknologi", "icon": "💻", "color": "#2980b9"},
     "politik": {"label": "Politik Dunia", "icon": "🌍", "color": "#8e44ad"},
     "ekonomi": {"label": "Ekonomi & Bisnis", "icon": "📊", "color": "#e67e22"},

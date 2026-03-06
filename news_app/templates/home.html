@@ -1,19 +1,18 @@
 {% extends "base.html" %} {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
-  <!-- 🔴 Breaking News Ticker -->
+  <!-- Breaking News Ticker -->
   {% if hot_news %}
-  <div class="bg-red-600 text-white rounded-lg mb-6 overflow-hidden">
+  <div class="bg-gray-900 text-white rounded-lg mb-6 overflow-hidden">
     <div class="flex items-center">
-      <div class="bg-red-700 px-4 py-2 font-bold text-xs uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
-        <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-        TERKINI
+      <div class="bg-red-600 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider flex-shrink-0 flex items-center gap-1.5">
+        <span class="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
+        Terkini
       </div>
-      <div class="overflow-hidden flex-1 py-2">
+      <div class="overflow-hidden flex-1 py-2.5 relative">
         <div class="breaking-ticker whitespace-nowrap px-4">
           {% for item in hot_news[:5] %}
-          <a href="/artikel/{{ item.slug }}" class="text-white hover:text-red-200 text-sm mx-6 transition-colors">{{ item.title }}</a>
-          <span class="text-red-300 mx-2">•</span>
-          {% endfor %}
+          <a href="/artikel/{{ item.slug }}" class="text-gray-200 hover:text-white text-sm mx-8 transition-colors">{{ item.title }}</a>
+          {% if not loop.last %}<span class="text-gray-600 mx-1">&bull;</span>{% endif %} {% endfor %}
         </div>
       </div>
     </div>
@@ -22,39 +21,45 @@
 
   <div class="flex flex-col lg:flex-row gap-8">
     <!-- Main Content -->
-    <div class="w-full lg:w-2/3 flex flex-col gap-8">
-      <!-- Hero + Sub-heroes Section -->
+    <div class="w-full lg:w-2/3 flex flex-col gap-10">
+      <!-- Hero + Sub-heroes -->
       <section class="flex flex-col md:flex-row gap-4">
-        <!-- Hero -->
         {% if hero %}
         <div class="w-full md:w-3/5">
           <a href="/artikel/{{ hero.slug }}" class="group block relative overflow-hidden rounded-xl">
-            <img alt="{{ hero.title }}" class="w-full h-72 md:h-96 object-cover group-hover:scale-105 transition-transform duration-500" src="{{ hero.thumbnail_url }}" loading="eager" />
-            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+            <img
+              alt="{{ hero.title }}"
+              class="w-full h-72 md:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+              src="{{ hero.thumbnail_url }}"
+              loading="eager"
+              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=1200'"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
             <div class="absolute bottom-0 left-0 right-0 p-6">
               {% if hero.category in categories %}
-              <span class="inline-block text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide mb-3" style="background-color: {{ categories[hero.category].color }}">{{ categories[hero.category].label }}</span>
+              <span class="text-xs text-gray-300 uppercase tracking-wider font-medium mb-2 block">{{ categories[hero.category].label }}</span>
               {% endif %}
-              <h1 class="text-white text-xl md:text-2xl font-bold leading-tight mb-2 group-hover:text-indigo-200 transition-colors">{{ hero.title }}</h1>
+              <h1 class="text-white text-xl md:text-2xl font-bold leading-tight mb-2 group-hover:text-blue-200 transition-colors">{{ hero.title }}</h1>
               <p class="text-gray-300 text-sm line-clamp-2 mb-2">{{ hero.excerpt }}</p>
-              <span class="text-gray-400 text-xs flex items-center gap-1"><span class="material-icons text-[12px]">schedule</span> {{ time_ago(hero.created_at) }}</span>
+              <span class="text-gray-400 text-xs">{{ time_ago(hero.created_at) }}</span>
             </div>
           </a>
         </div>
-        {% endif %}
-
-        <!-- Sub-heroes -->
-        {% if sub_heroes %}
-        <div class="w-full md:w-2/5 flex flex-col gap-4">
+        {% endif %} {% if sub_heroes %}
+        <div class="w-full md:w-2/5 flex flex-col gap-3">
           {% for item in sub_heroes %}
-          <a href="/artikel/{{ item.slug }}" class="group block relative overflow-hidden rounded-xl flex-1">
-            <img alt="{{ item.title }}" class="w-full h-full min-h-[100px] object-cover group-hover:scale-105 transition-transform duration-500" src="{{ item.thumbnail_url }}" loading="eager" />
+          <a href="/artikel/{{ item.slug }}" class="group block relative overflow-hidden rounded-xl flex-1 min-h-[120px]">
+            <img
+              alt="{{ item.title }}"
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              src="{{ item.thumbnail_url }}"
+              loading="eager"
+              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=800'"
+            />
             <div class="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent"></div>
             <div class="absolute bottom-0 left-0 right-0 p-3">
-              {% if item.category in categories %}
-              <span class="inline-block text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide mb-1" style="background-color: {{ categories[item.category].color }}">{{ categories[item.category].label }}</span>
-              {% endif %}
-              <h3 class="text-white text-sm font-bold leading-tight line-clamp-2 group-hover:text-indigo-200 transition-colors">{{ item.title }}</h3>
+              <span class="text-[10px] text-gray-300 uppercase tracking-wider font-medium block mb-0.5"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
+              <h3 class="text-white text-sm font-semibold leading-tight line-clamp-2 group-hover:text-blue-200 transition-colors">{{ item.title }}</h3>
             </div>
           </a>
           {% endfor %}
@@ -62,82 +67,76 @@
         {% endif %}
       </section>
 
-      <!-- 🔥 Hot News (Horizontal Scroll) -->
+      <!-- Hot News (Auto-scrolling) -->
       {% if hot_news %}
       <section>
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold flex items-center gap-2"><span class="text-2xl">🔥</span> Hot News</h2>
-        </div>
-        <div class="hot-news-scroll">
-          {% for item in hot_news %}
-          <article class="hot-news-card bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <a href="/artikel/{{ item.slug }}" class="block">
-              <img alt="{{ item.title }}" class="w-full h-36 object-cover" src="{{ item.thumbnail_url }}" loading="lazy" />
-              <div class="p-3">
-                {% if item.category in categories %}
-                <span class="inline-block text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase mb-2" style="background-color: {{ categories[item.category].color }}">{{ categories[item.category].label }}</span>
-                {% endif %}
-                <h3 class="text-sm font-bold line-clamp-2 text-gray-900 leading-tight mb-1">{{ item.title }}</h3>
-                <p class="text-xs text-gray-500 flex items-center gap-1"><span class="material-icons text-[11px]">schedule</span> {{ time_ago(item.created_at) }}</p>
-              </div>
-            </a>
-          </article>
-          {% endfor %}
+        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Berita Hangat</h2>
+        <div class="hot-news-wrapper overflow-hidden relative">
+          <div class="hot-news-track flex gap-4" id="hotNewsTrack">
+            {% for item in hot_news %}
+            <article class="hot-news-card flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300">
+              <a href="/artikel/{{ item.slug }}" class="block">
+                <img
+                  alt="{{ item.title }}"
+                  class="w-full h-36 object-cover"
+                  src="{{ item.thumbnail_url }}"
+                  loading="lazy"
+                  onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=600'"
+                />
+                <div class="p-3">
+                  <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
+                  <h3 class="text-sm font-semibold line-clamp-2 text-gray-900 leading-snug mt-1 mb-2">{{ item.title }}</h3>
+                  <span class="text-xs text-gray-400">{{ time_ago(item.created_at) }}</span>
+                </div>
+              </a>
+            </article>
+            {% endfor %}
+            <!-- Duplicate for seamless loop -->
+            {% for item in hot_news %}
+            <article class="hot-news-card flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300">
+              <a href="/artikel/{{ item.slug }}" class="block">
+                <img
+                  alt="{{ item.title }}"
+                  class="w-full h-36 object-cover"
+                  src="{{ item.thumbnail_url }}"
+                  loading="lazy"
+                  onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=600'"
+                />
+                <div class="p-3">
+                  <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
+                  <h3 class="text-sm font-semibold line-clamp-2 text-gray-900 leading-snug mt-1 mb-2">{{ item.title }}</h3>
+                  <span class="text-xs text-gray-400">{{ time_ago(item.created_at) }}</span>
+                </div>
+              </a>
+            </article>
+            {% endfor %}
+          </div>
         </div>
       </section>
       {% endif %}
 
-      <!-- 📰 Berita Hari Ini -->
+      <!-- Berita Terbaru -->
       {% if daily_news %}
       <section>
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold flex items-center gap-2"><span class="text-2xl">📰</span> Berita Hari Ini</h2>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Berita Terbaru</h2>
+        <div class="space-y-5">
           {% for article in daily_news %}
-          <article class="bg-white border border-gray-200 rounded-xl p-4 flex gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg group">
+          <article class="flex gap-4 group pb-5 {% if not loop.last %}border-b border-gray-100{% endif %}">
             <a href="/artikel/{{ article.slug }}" class="flex-shrink-0">
-              <img alt="{{ article.title }}" class="w-24 h-24 object-cover rounded-lg group-hover:scale-105 transition-transform duration-300" src="{{ article.thumbnail_url }}" loading="lazy" />
+              <img
+                alt="{{ article.title }}"
+                class="w-28 h-20 object-cover rounded-lg"
+                src="{{ article.thumbnail_url }}"
+                loading="lazy"
+                onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=400'"
+              />
             </a>
-            <div class="flex flex-col justify-between min-w-0">
-              <div>
-                {% if article.category in categories %}
-                <span class="inline-block text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase mb-1.5" style="background-color: {{ categories[article.category].color }}">{{ categories[article.category].label }}</span>
-                {% endif %}
-                <h3 class="text-sm font-bold leading-snug mb-1">
-                  <a class="hover:text-primary line-clamp-2 transition-colors" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
-                </h3>
-              </div>
-              <p class="text-xs text-gray-500 flex items-center gap-1"><span class="material-icons text-[11px]">schedule</span> {{ time_ago(article.created_at) }}</p>
+            <div class="flex flex-col justify-center min-w-0">
+              <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1"> {% if article.category in categories %}{{ categories[article.category].label }}{% endif %} &middot; {{ time_ago(article.created_at) }} </span>
+              <h3 class="text-sm font-semibold leading-snug">
+                <a class="text-gray-900 hover:text-primary line-clamp-2 transition-colors" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
+              </h3>
             </div>
-          </article>
-          {% endfor %}
-        </div>
-      </section>
-      {% endif %}
-
-      <!-- 📅 Pilihan Minggu Ini -->
-      {% if weekly_picks %}
-      <section>
-        <div class="flex justify-between items-center mb-4">
-          <h2 class="text-xl font-bold flex items-center gap-2"><span class="text-2xl">⭐</span> Pilihan Minggu Ini</h2>
-        </div>
-        <div class="hot-news-scroll">
-          {% for item in weekly_picks %}
-          <article class="hot-news-card bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl overflow-hidden hover:shadow-lg transition-shadow duration-300">
-            <a href="/artikel/{{ item.slug }}" class="block">
-              <img alt="{{ item.title }}" class="w-full h-40 object-cover" src="{{ item.thumbnail_url }}" loading="lazy" />
-              <div class="p-4">
-                {% if item.category in categories %}
-                <span class="inline-block text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase mb-2" style="background-color: {{ categories[item.category].color }}">{{ categories[item.category].label }}</span>
-                {% endif %}
-                <h3 class="text-sm font-bold line-clamp-2 text-gray-900 leading-tight mb-2">{{ item.title }}</h3>
-                <div class="flex items-center justify-between text-xs text-gray-500">
-                  <span class="flex items-center gap-1"><span class="material-icons text-[11px]">visibility</span> {{ item.views or 0 }} views</span>
-                  <span>{{ time_ago(item.created_at) }}</span>
-                </div>
-              </div>
-            </a>
           </article>
           {% endfor %}
         </div>
@@ -146,66 +145,57 @@
     </div>
 
     <!-- Sidebar -->
-    <aside class="w-full lg:w-1/3 flex flex-col gap-6">
-      <!-- 📈 Trending -->
-      <div class="bg-white border border-gray-200 rounded-xl p-6">
-        <h3 class="text-xl font-bold mb-5 flex items-center gap-2">
-          <span class="material-icons text-red-500 text-xl">trending_up</span>
-          Trending
-        </h3>
+    <aside class="w-full lg:w-1/3 flex flex-col gap-8">
+      <!-- Trending (limited to 5) -->
+      <div class="bg-white border border-gray-100 rounded-xl p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-5 border-b-2 border-gray-900 pb-2 inline-block">Trending</h3>
         <ul class="space-y-4">
-          {% for item in trending %}
-          <li class="flex gap-3 items-start {% if not loop.last %}border-b border-gray-100 pb-4{% endif %}">
-            <span class="text-2xl font-bold leading-none flex-shrink-0 {% if loop.index <= 3 %}text-red-400{% else %}text-gray-200{% endif %}">{{ loop.index }}</span>
+          {% for item in trending[:5] %}
+          <li class="flex gap-3 items-start {% if not loop.last %}border-b border-gray-50 pb-4{% endif %}">
+            <span class="text-2xl font-bold leading-none flex-shrink-0 mt-0.5 {% if loop.index <= 3 %}text-primary{% else %}text-gray-300{% endif %}">{{ loop.index }}</span>
             <div class="min-w-0">
-              <h4 class="font-semibold text-sm leading-tight mb-1">
-                <a class="hover:text-primary transition-colors line-clamp-2" href="/artikel/{{ item.slug }}">{{ item.title }}</a>
+              <h4 class="text-sm font-semibold leading-snug mb-1">
+                <a class="text-gray-900 hover:text-primary transition-colors line-clamp-2" href="/artikel/{{ item.slug }}">{{ item.title }}</a>
               </h4>
-              <div class="flex items-center gap-2 text-xs text-gray-500">
-                {% if item.category in categories %}
-                <span style="color: {{ categories[item.category].color }}">{{ categories[item.category].label }}</span>
-                <span>•</span>
-                {% endif %}
-                <span class="flex items-center gap-0.5"><span class="material-icons text-[11px]">schedule</span> {{ time_ago(item.created_at) }}</span>
-              </div>
+              <span class="text-xs text-gray-400"> {% if item.category in categories %}{{ categories[item.category].label }} &middot; {% endif %} {{ time_ago(item.created_at) }} </span>
             </div>
           </li>
           {% endfor %}
         </ul>
       </div>
 
-      <!-- Kategori -->
-      <div class="bg-white border border-gray-200 rounded-xl p-6">
-        <h3 class="text-xl font-bold mb-4">Kategori</h3>
-        <ul class="space-y-2">
+      <!-- Kategori (clean, no icons) -->
+      <div class="bg-white border border-gray-100 rounded-xl p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Kategori</h3>
+        <ul class="space-y-1">
           {% for key, cat in categories.items() %}
           <li>
-            <a class="flex justify-between items-center py-2.5 px-3 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-lg group transition-all" href="/kategori/{{ key }}">
-              <span class="flex items-center gap-2">
-                <span>{{ cat.icon }}</span>
-                <span class="font-medium">{{ cat.label }}</span>
-              </span>
-              <span class="material-icons text-sm text-gray-400 group-hover:text-primary transition-transform group-hover:translate-x-1">chevron_right</span>
+            <a class="flex justify-between items-center py-2.5 px-3 text-gray-600 hover:text-primary hover:bg-gray-50 rounded-lg transition-all text-sm" href="/kategori/{{ key }}">
+              <span class="font-medium">{{ cat.label }}</span>
+              <span class="text-gray-300 text-xs">&rsaquo;</span>
             </a>
           </li>
           {% endfor %}
         </ul>
       </div>
 
-      <!-- Most Read (24h) -->
-      {% if trending %}
-      <div class="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-xl p-6">
-        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-          <span class="material-icons text-primary text-lg">local_fire_department</span>
-          Paling Banyak Dibaca
-        </h3>
-        <div class="space-y-3">
-          {% for item in trending[:5] %}
-          <a href="/artikel/{{ item.slug }}" class="flex gap-3 group items-center">
-            <img alt="{{ item.title }}" class="w-16 h-16 object-cover rounded-lg flex-shrink-0" src="{{ item.thumbnail_url }}" loading="lazy" />
+      <!-- Pilihan Editor -->
+      {% if weekly_picks %}
+      <div class="bg-white border border-gray-100 rounded-xl p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Pilihan Editor</h3>
+        <div class="space-y-4">
+          {% for item in weekly_picks[:4] %}
+          <a href="/artikel/{{ item.slug }}" class="flex gap-3 group items-start">
+            <img
+              alt="{{ item.title }}"
+              class="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+              src="{{ item.thumbnail_url }}"
+              loading="lazy"
+              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=200'"
+            />
             <div class="min-w-0">
-              <h4 class="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">{{ item.title }}</h4>
-              <span class="text-xs text-gray-500">{{ item.views or 0 }} views</span>
+              <h4 class="text-sm font-semibold line-clamp-2 text-gray-900 group-hover:text-primary transition-colors leading-snug">{{ item.title }}</h4>
+              <span class="text-xs text-gray-400 mt-1 block">{{ time_ago(item.created_at) }}</span>
             </div>
           </a>
           {% endfor %}
@@ -215,4 +205,33 @@
     </aside>
   </div>
 </div>
+
+<script>
+  // Auto-scrolling Hot News
+  (function () {
+    const track = document.getElementById("hotNewsTrack");
+    if (!track) return;
+
+    let scrollPos = 0;
+    const cardWidth = 276; // 260px card + 16px gap
+    const totalCards = track.children.length / 2; // half are duplicates
+    const resetPoint = totalCards * cardWidth;
+    let speed = 0.5;
+    let paused = false;
+
+    track.addEventListener("mouseenter", () => (paused = true));
+    track.addEventListener("mouseleave", () => (paused = false));
+
+    function animate() {
+      if (!paused) {
+        scrollPos += speed;
+        if (scrollPos >= resetPoint) scrollPos = 0;
+        track.style.transform = `translateX(-${scrollPos}px)`;
+      }
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+  })();
+</script>
 {% endblock %}
