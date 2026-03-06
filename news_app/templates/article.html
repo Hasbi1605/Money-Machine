@@ -1,204 +1,250 @@
-{% extends "base.html" %} {% block meta_description %}{{ article.meta_description or article.excerpt[:160] }}{% endblock %} {% block og_type %}article{% endblock %} {% block og_image %}{{ article.thumbnail_url }}{% endblock %} {% block
-content %}
+{% extends "base.html" %} {% block meta_description %}{{ article.meta_description or article.excerpt[:160] }}{% endblock %} {% block og_type %}article{% endblock %} {% block og_image %}{{ article.thumbnail_url }}{% endblock %} {% block head
+%}
+<style>
+  /* Article typography — inspired by NYT, BBC, The Guardian */
+  .article-body {
+    font-family: "Georgia", "Times New Roman", serif;
+  }
+  .article-body p {
+    font-size: 1.125rem;
+    line-height: 1.9;
+    color: #333;
+    margin-bottom: 1.5rem;
+  }
+  .article-body h2 {
+    font-family: "Inter", sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+  }
+  .article-body h3 {
+    font-family: "Inter", sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #222;
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+  .article-body blockquote {
+    border-left: 3px solid #1a237e;
+    padding-left: 1.25rem;
+    margin: 2rem 0;
+    font-style: italic;
+    color: #444;
+  }
+  .article-body blockquote p {
+    font-size: 1.1rem;
+    line-height: 1.8;
+  }
+  .article-body ul,
+  .article-body ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .article-body li {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #333;
+    margin-bottom: 0.5rem;
+  }
+  .article-body strong {
+    color: #111;
+  }
+  .article-body a {
+    color: #1a237e;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .article-body a:hover {
+    color: #3949ab;
+  }
+  .article-body img {
+    border-radius: 0.5rem;
+    margin: 1.5rem 0;
+  }
+  .article-body .source-attribution {
+    font-family: "Inter", sans-serif;
+    font-size: 0.8rem;
+    color: #999;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1rem;
+    margin-top: 2rem;
+    font-style: italic;
+  }
+</style>
+{% endblock %} {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
   <div class="flex flex-col lg:flex-row gap-12">
     <!-- Article Main -->
     <article class="lg:w-2/3">
       <!-- Breadcrumb -->
-      <nav class="flex text-sm text-gray-500 mb-6">
+      <nav class="text-sm text-gray-400 mb-6">
         <ol class="flex items-center space-x-2">
           <li><a class="hover:text-primary transition-colors" href="/">Beranda</a></li>
-          <li><span class="material-icons text-xs">chevron_right</span></li>
+          <li><span class="text-gray-300">/</span></li>
           <li><a class="hover:text-primary transition-colors" href="/kategori/{{ article.category }}">{{ cat_info.label if cat_info else article.category }}</a></li>
         </ol>
       </nav>
 
       <!-- Article Header -->
-      <header class="mb-8">
-        <div class="mb-4">
-          {% if cat_info %}
-          <a href="/kategori/{{ article.category }}" class="text-xs text-gray-400 uppercase tracking-wider font-medium hover:text-primary transition-colors"> {{ cat_info.label if cat_info else article.category }} </a>
-          {% endif %}
-        </div>
-        <h1 id="article-title" class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-6">{{ article.title }}</h1>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-t border-gray-200 py-4 mb-8">
-          <div class="flex items-center space-x-4 mb-4 sm:mb-0">
-            <div>
-              <div class="flex space-x-1 text-sm text-gray-500">
-                <time>{{ format_date(article.created_at) }}</time>
-                <span aria-hidden="true">&middot;</span>
-                <span>{{ article.views or 0 }} kali dibaca</span>
-              </div>
-            </div>
+      <header class="mb-6">
+        <span class="text-xs text-gray-400 uppercase tracking-widest font-medium"> {% if cat_info %}{{ cat_info.label }}{% endif %} </span>
+        <h1 id="article-title" class="text-3xl sm:text-4xl font-bold leading-tight mt-3 mb-5 text-gray-900" style="font-family: &quot;Inter&quot;, sans-serif">{{ article.title }}</h1>
+        <div class="flex items-center justify-between border-b border-gray-200 pb-4 mb-6">
+          <div class="flex items-center space-x-3 text-sm text-gray-500">
+            <time>{{ format_date(article.created_at) }}</time>
+            <span>&middot;</span>
+            <span>{{ article.views or 0 }} dibaca</span>
           </div>
-          <div class="flex items-center space-x-3">
-            <!-- Language Selector -->
-            <div class="relative mr-3">
-              <select
-                id="lang-selector"
-                onchange="translateArticle(this.value)"
-                class="text-xs bg-gray-100 border border-gray-300 rounded-lg px-2 py-1.5 pr-6 appearance-none cursor-pointer hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
-              >
-                <option value="id" selected>🇮🇩 ID</option>
-                <option value="en">🇬🇧 EN</option>
-                <option value="ms">🇲🇾 MS</option>
-                <option value="zh">🇨🇳 ZH</option>
-                <option value="ja">🇯🇵 JA</option>
-              </select>
-            </div>
-            <span class="text-sm text-gray-500 mr-2">Bagikan:</span>
-            <a href="https://twitter.com/intent/tweet?text={{ article.title | urlencode }}&url={{ request.url }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-blue-400 transition-colors">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"
-                ></path>
-              </svg>
-            </a>
-            <a href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-blue-600 transition-colors">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  fill-rule="evenodd"
-                  clip-rule="evenodd"
-                  d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
-                ></path>
-              </svg>
-            </a>
-            <a href="https://api.whatsapp.com/send?text={{ article.title | urlencode }}%20{{ request.url }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-green-500 transition-colors">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  fill-rule="evenodd"
-                  clip-rule="evenodd"
-                  d="M12.031 21c-1.566 0-3.093-.414-4.428-1.203L2 21.41l1.649-5.461c-.86-1.393-1.314-2.99-1.314-4.636C2.335 5.618 6.674 1.28 12.031 1.28c2.618 0 5.082 1.02 6.932 2.87 1.85 1.85 2.868 4.312 2.868 6.93 0 5.694-4.34 10.033-9.799 10.033h-.001z"
-                ></path>
-              </svg>
-            </a>
-            <a href="https://t.me/share/url?url={{ request.url }}&text={{ article.title | urlencode }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-blue-500 transition-colors">
-              <span class="material-icons text-[20px]">send</span>
-            </a>
-          </div>
+          <!-- Language Selector -->
+          <select id="lang-selector" onchange="translateArticle(this.value)" class="text-xs bg-gray-100 border border-gray-200 rounded px-2 py-1 cursor-pointer hover:bg-gray-200 transition-colors focus:outline-none">
+            <option value="id" selected>ID</option>
+            <option value="en">EN</option>
+            <option value="ms">MS</option>
+            <option value="zh">ZH</option>
+            <option value="ja">JA</option>
+          </select>
         </div>
       </header>
 
-      <!-- AI Summary ("Baca 30 Detik") -->
+      <!-- Featured Image -->
+      {% if article.thumbnail_url %}
+      <figure class="mb-6">
+        <img
+          alt="{{ article.title }}"
+          class="w-full rounded-lg object-cover"
+          src="{{ article.thumbnail_url }}"
+          loading="eager"
+          onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=1200'"
+        />
+        {% if article.source_name %}
+        <figcaption class="mt-2 text-xs text-gray-400">Sumber: {{ article.source_name }}</figcaption>
+        {% endif %}
+      </figure>
+      {% endif %}
+
+      <!-- AI Summary ("Ringkasan 30 Detik") — collapsed by default, below photo -->
       {% if ai_summary %}
-      <div id="ai-summary-box" class="mb-8 bg-gray-50 border border-gray-200 rounded-xl overflow-hidden">
+      <div id="ai-summary-box" class="mb-8 border border-gray-200 rounded-lg overflow-hidden">
         <button
           onclick="
             document.getElementById('summary-content').classList.toggle('hidden');
             this.querySelector('.summary-arrow').classList.toggle('rotate-180');
           "
-          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-100 transition-colors"
+          class="w-full flex items-center justify-between px-5 py-3.5 text-left bg-gray-50 hover:bg-gray-100 transition-colors"
         >
           <div class="flex items-center gap-2">
-            <span class="font-bold text-indigo-900">Ringkasan 30 Detik</span>
-            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">AI</span>
+            <span class="font-semibold text-gray-800 text-sm">Ringkasan 30 Detik</span>
+            <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider">AI</span>
           </div>
-          <span class="material-icons text-indigo-500 summary-arrow transition-transform duration-300">expand_more</span>
+          <span class="material-icons text-gray-400 summary-arrow transition-transform duration-300 text-lg">expand_more</span>
         </button>
-        <div id="summary-content" class="px-5 pb-5">
+        <div id="summary-content" class="px-5 pb-5 pt-3 hidden">
           <ul class="space-y-3">
             {% for point in ai_summary %}
             <li class="flex items-start gap-3">
-              <span class="flex-shrink-0 w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{{ loop.index }}</span>
-              <span class="text-gray-800 text-sm leading-relaxed">{{ point }}</span>
+              <span class="flex-shrink-0 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">{{ loop.index }}</span>
+              <span class="text-gray-700 text-sm leading-relaxed">{{ point }}</span>
             </li>
             {% endfor %}
           </ul>
         </div>
       </div>
       {% else %}
-      <div id="ai-summary-box" class="mb-8 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl overflow-hidden">
-        <button onclick="loadSummary()" id="summary-load-btn" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/50 transition-colors">
+      <div id="ai-summary-box" class="mb-8 border border-gray-200 rounded-lg overflow-hidden">
+        <button onclick="loadSummary()" id="summary-load-btn" class="w-full flex items-center justify-between px-5 py-3.5 text-left bg-gray-50 hover:bg-gray-100 transition-colors">
           <div class="flex items-center gap-2">
-            <span class="text-xl">⚡</span>
-            <span class="font-bold text-indigo-900">Ringkasan 30 Detik</span>
-            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">AI</span>
+            <span class="font-semibold text-gray-800 text-sm">Ringkasan 30 Detik</span>
+            <span class="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider">AI</span>
           </div>
-          <span class="material-icons text-indigo-500">auto_awesome</span>
+          <span class="material-icons text-gray-400 text-lg">auto_awesome</span>
         </button>
-        <div id="summary-content" class="px-5 pb-5 hidden">
-          <div id="summary-loading" class="flex items-center gap-2 text-sm text-gray-500"><span class="material-icons animate-spin text-sm">refresh</span> Membuat ringkasan AI...</div>
+        <div id="summary-content" class="px-5 pb-5 pt-3 hidden">
+          <div id="summary-loading" class="flex items-center gap-2 text-sm text-gray-500"><span class="material-icons animate-spin text-sm">refresh</span> Membuat ringkasan...</div>
           <ul id="summary-list" class="space-y-3 hidden"></ul>
         </div>
       </div>
       {% endif %}
 
-      <!-- 🎧 Text-to-Speech Player -->
-      <div id="tts-player" class="mb-8 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <button onclick="toggleTTS()" id="tts-btn" class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center hover:bg-indigo-800 transition-colors shadow-md">
-              <span class="material-icons" id="tts-icon">headphones</span>
-            </button>
-            <div>
-              <span class="text-sm font-semibold text-gray-800">Dengarkan Berita</span>
-              <p class="text-xs text-gray-500" id="tts-status">Klik untuk mendengarkan</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <select id="tts-speed" onchange="changeTTSSpeed(this.value)" class="text-xs bg-white border border-gray-300 rounded px-2 py-1 cursor-pointer">
-              <option value="0.75">0.75x</option>
-              <option value="1" selected>1x</option>
-              <option value="1.25">1.25x</option>
-              <option value="1.5">1.5x</option>
-            </select>
-            <button onclick="stopTTS()" class="text-gray-400 hover:text-red-500 transition-colors" title="Stop">
-              <span class="material-icons text-xl">stop</span>
-            </button>
-          </div>
-        </div>
-        <div id="tts-progress-bar" class="mt-3 h-1 bg-gray-200 rounded-full overflow-hidden hidden">
-          <div id="tts-progress" class="h-full bg-primary rounded-full transition-all duration-300" style="width: 0%"></div>
-        </div>
-      </div>
-
-      <!-- Featured Image -->
-      {% if article.thumbnail_url %}
-      <figure class="mb-10">
-        <img
-          alt="{{ article.title }}"
-          class="w-full rounded-xl object-cover"
-          src="{{ article.thumbnail_url }}"
-          loading="eager"
-          onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=1200'"
-        />
-        {% if article.source_name %}
-        <figcaption class="mt-3 text-sm text-gray-500 text-center">Sumber inspirasi: {{ article.source_name }}</figcaption>
-        {% endif %}
-      </figure>
-      {% endif %}
-
-      <!-- Excerpt -->
-      <div class="prose prose-lg max-w-none mb-6">
-        <p id="article-excerpt" class="lead text-xl text-gray-700 font-medium">{{ article.excerpt }}</p>
+      <!-- Excerpt (lead paragraph) -->
+      <div class="mb-6">
+        <p id="article-excerpt" class="text-xl text-gray-700 leading-relaxed font-medium" style="font-family: &quot;Georgia&quot;, serif">{{ article.excerpt }}</p>
       </div>
 
       <!-- Article Content -->
-      <div
-        id="article-content"
-        class="prose prose-lg max-w-none mb-12 prose-headings:font-bold prose-headings:text-gray-900 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-700 prose-ul:list-disc prose-ul:pl-6 prose-ol:list-decimal prose-ol:pl-6 prose-li:text-gray-700 prose-img:rounded-xl"
-      >
-        {{ article.content | safe }}
-      </div>
+      <div id="article-content" class="article-body mb-10">{{ article.content | safe }}</div>
 
-      <!-- 📊 AI Infographic -->
-      {% if infographic_url %}
-      <div class="mb-10 bg-gray-50 border border-gray-200 rounded-xl p-6">
-        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
-          <span class="material-icons text-primary">insights</span>
-          Infografis Visual
-          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">AI</span>
-        </h3>
-        <img src="{{ infographic_url }}" alt="Infografis: {{ article.title }}" class="w-full rounded-lg" loading="lazy" />
-        <p class="mt-3 text-xs text-gray-400 text-center">Ilustrasi infografis dibuat dengan AI — untuk tujuan visualisasi</p>
+      <!-- Share Buttons (bottom of article) -->
+      <div class="border-t border-b border-gray-200 py-5 mb-8">
+        <p class="text-xs text-gray-400 uppercase tracking-widest font-medium mb-3">Bagikan Artikel</p>
+        <div class="flex items-center gap-3">
+          <a
+            href="https://twitter.com/intent/tweet?text={{ article.title | urlencode }}&url={{ request.url }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Twitter
+          </a>
+          <a
+            href="https://www.facebook.com/sharer/sharer.php?u={{ request.url }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"
+              />
+            </svg>
+            Facebook
+          </a>
+          <a
+            href="https://api.whatsapp.com/send?text={{ article.title | urlencode }}%20{{ request.url }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"
+              />
+            </svg>
+            WhatsApp
+          </a>
+          <a
+            href="https://t.me/share/url?url={{ request.url }}&text={{ article.title | urlencode }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"
+              />
+            </svg>
+            Telegram
+          </a>
+          <button
+            onclick="navigator.clipboard.writeText(window.location.href).then(() => (this.textContent = '✓ Disalin'))"
+            class="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
+          >
+            <span class="material-icons text-base">link</span>
+            Salin Link
+          </button>
+        </div>
       </div>
-      {% endif %}
 
       <!-- Tags -->
       {% if tags %}
       <div class="flex flex-wrap gap-2 mb-10">
         {% for tag in tags %}
-        <a href="/cari?q={{ tag }}" class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition">{{ tag }}</a>
+        <a href="/cari?q={{ tag }}" class="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm hover:bg-gray-200 transition">{{ tag }}</a>
         {% endfor %}
       </div>
       {% endif %}
@@ -207,59 +253,53 @@ content %}
     <!-- Sidebar -->
     <aside class="lg:w-1/3 space-y-8">
       <!-- Trending -->
-      <div class="border border-gray-200 rounded-xl p-6 bg-white">
-        <h2 class="text-xl font-bold mb-5 flex items-center gap-2">
-          Trending
-          <span class="material-icons text-red-500 text-xl">trending_up</span>
-        </h2>
-        <div class="space-y-5">
-          {% for item in trending if trending is defined %}
-          <a class="group flex gap-4" href="/artikel/{{ item.slug }}">
-            <span class="text-3xl font-bold text-gray-200 group-hover:text-primary transition-colors">{{ loop.index }}</span>
+      <div class="border border-gray-100 rounded-xl p-6 bg-white">
+        <h2 class="text-lg font-bold text-gray-900 mb-5 border-b-2 border-gray-900 pb-2 inline-block">Trending</h2>
+        <div class="space-y-4">
+          {% for item in trending[:5] if trending is defined %}
+          <a class="group flex gap-3 items-start {% if not loop.last %}pb-4 border-b border-gray-50{% endif %}" href="/artikel/{{ item.slug }}">
+            <span class="text-2xl font-bold leading-none flex-shrink-0 mt-0.5 {% if loop.index <= 3 %}text-primary{% else %}text-gray-300{% endif %}">{{ loop.index }}</span>
             <div>
-              <h3 class="font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2">{{ item.title }}</h3>
-              <p class="text-xs text-gray-500 mt-1 flex items-center gap-1"><span class="material-icons text-[12px]">schedule</span> {{ time_ago(item.created_at) }}</p>
+              <h3 class="text-sm font-semibold text-gray-900 group-hover:text-primary transition-colors line-clamp-2 leading-snug">{{ item.title }}</h3>
+              <span class="text-xs text-gray-400 mt-1 block">{{ time_ago(item.created_at) }}</span>
             </div>
           </a>
-          {% if not loop.last %}
-          <hr class="border-gray-100" />
-          {% endif %} {% endfor %}
+          {% endfor %}
         </div>
       </div>
 
-      <!-- Categories -->
-      <div class="border border-gray-200 rounded-xl p-6 bg-white">
-        <h2 class="text-xl font-bold mb-4">Kategori</h2>
-        <ul class="space-y-2">
+      <!-- Kategori -->
+      <div class="border border-gray-100 rounded-xl p-6 bg-white">
+        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Kategori</h2>
+        <ul class="space-y-1">
           {% for key, cat in categories.items() %}
           <li>
-            <a class="flex justify-between items-center py-2 text-gray-700 hover:text-primary group transition-colors" href="/kategori/{{ key }}">
+            <a class="flex justify-between items-center py-2.5 px-3 text-gray-600 hover:text-primary hover:bg-gray-50 rounded-lg transition-all text-sm" href="/kategori/{{ key }}">
               <span class="font-medium">{{ cat.label }}</span>
-              <span class="material-icons text-gray-400 group-hover:text-primary transition-transform group-hover:translate-x-1">chevron_right</span>
+              <span class="text-gray-300 text-xs">&rsaquo;</span>
             </a>
           </li>
-          {% if not loop.last %}
-          <hr class="border-gray-100" />
-          {% endif %} {% endfor %}
+          {% endfor %}
         </ul>
       </div>
 
       <!-- Related Articles -->
       {% if related %}
       <div>
-        <h2 class="text-xl font-bold mb-4 flex justify-between items-center">
-          Terkait
-          <a class="text-sm text-primary font-medium hover:underline" href="/kategori/{{ article.category }}">Lihat Semua</a>
-        </h2>
+        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Artikel Terkait</h2>
         <div class="space-y-4">
           {% for item in related %}
-          <a class="flex gap-4 group" href="/artikel/{{ item.slug }}">
-            <img alt="{{ item.title }}" class="w-24 h-24 object-cover rounded-lg flex-shrink-0" src="{{ item.thumbnail_url }}" loading="lazy" />
-            <div class="flex flex-col justify-center">
-              {% if item.category in categories %}
-              <span class="text-[10px] font-bold uppercase mb-1 tracking-wider" style="color: {{ categories[item.category].color }}">{{ categories[item.category].label }}</span>
-              {% endif %}
-              <h3 class="font-semibold text-gray-900 group-hover:text-primary line-clamp-2 text-sm transition-colors">{{ item.title }}</h3>
+          <a class="flex gap-3 group items-start" href="/artikel/{{ item.slug }}">
+            <img
+              alt="{{ item.title }}"
+              class="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+              src="{{ item.thumbnail_url }}"
+              loading="lazy"
+              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=200'"
+            />
+            <div>
+              <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
+              <h3 class="text-sm font-semibold text-gray-900 group-hover:text-primary line-clamp-2 transition-colors leading-snug mt-0.5">{{ item.title }}</h3>
             </div>
           </a>
           {% endfor %}
@@ -298,130 +338,16 @@ content %}
           const li = document.createElement("li");
           li.className = "flex items-start gap-3";
           li.innerHTML = `
-          <span class="flex-shrink-0 w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">${i + 1}</span>
-          <span class="text-gray-800 text-sm leading-relaxed">${point}</span>`;
+          <span class="flex-shrink-0 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center text-[10px] font-bold mt-0.5">${i + 1}</span>
+          <span class="text-gray-700 text-sm leading-relaxed">${point}</span>`;
           list.appendChild(li);
         });
       } else {
-        loading.innerHTML = "❌ Tidak dapat membuat ringkasan";
+        loading.textContent = "Tidak dapat membuat ringkasan saat ini.";
       }
     } catch (e) {
-      loading.innerHTML = "❌ Gagal memuat ringkasan";
+      loading.textContent = "Gagal memuat ringkasan.";
     }
-  }
-
-  // ── Text-to-Speech ──
-  let ttsUtterance = null;
-  let ttsPlaying = false;
-  let ttsPaused = false;
-
-  function getArticleText() {
-    const content = document.getElementById("article-content");
-    return content.innerText || content.textContent;
-  }
-
-  function toggleTTS() {
-    const synth = window.speechSynthesis;
-    const icon = document.getElementById("tts-icon");
-    const status = document.getElementById("tts-status");
-    const progressBar = document.getElementById("tts-progress-bar");
-
-    if (!synth) {
-      status.textContent = "Browser tidak mendukung TTS";
-      return;
-    }
-
-    if (ttsPlaying && !ttsPaused) {
-      synth.pause();
-      ttsPaused = true;
-      icon.textContent = "play_arrow";
-      status.textContent = "Dijeda";
-      return;
-    }
-
-    if (ttsPaused) {
-      synth.resume();
-      ttsPaused = false;
-      icon.textContent = "pause";
-      status.textContent = "Sedang membacakan...";
-      return;
-    }
-
-    // Start fresh
-    synth.cancel();
-    const text = getArticleText();
-    ttsUtterance = new SpeechSynthesisUtterance(text);
-    ttsUtterance.lang = "id-ID";
-    ttsUtterance.rate = parseFloat(document.getElementById("tts-speed").value);
-
-    // Try to find Indonesian voice
-    const voices = synth.getVoices();
-    const idVoice = voices.find((v) => v.lang.startsWith("id")) || voices.find((v) => v.lang.startsWith("ms"));
-    if (idVoice) ttsUtterance.voice = idVoice;
-
-    ttsUtterance.onstart = () => {
-      ttsPlaying = true;
-      icon.textContent = "pause";
-      status.textContent = "Sedang membacakan...";
-      progressBar.classList.remove("hidden");
-    };
-
-    ttsUtterance.onend = () => {
-      ttsPlaying = false;
-      ttsPaused = false;
-      icon.textContent = "headphones";
-      status.textContent = "Selesai";
-      progressBar.classList.add("hidden");
-    };
-
-    // Simulate progress
-    const words = text.split(/\s+/).length;
-    const speed = parseFloat(document.getElementById("tts-speed").value);
-    const estDuration = (words / (150 * speed)) * 60 * 1000; // ms
-    let startTime = Date.now();
-    const progressEl = document.getElementById("tts-progress");
-
-    function updateProgress() {
-      if (!ttsPlaying || ttsPaused) return;
-      const elapsed = Date.now() - startTime;
-      const pct = Math.min((elapsed / estDuration) * 100, 100);
-      progressEl.style.width = pct + "%";
-      if (pct < 100) requestAnimationFrame(updateProgress);
-    }
-
-    ttsUtterance.onstart = () => {
-      ttsPlaying = true;
-      icon.textContent = "pause";
-      status.textContent = "Sedang membacakan...";
-      progressBar.classList.remove("hidden");
-      startTime = Date.now();
-      updateProgress();
-    };
-
-    synth.speak(ttsUtterance);
-  }
-
-  function stopTTS() {
-    window.speechSynthesis.cancel();
-    ttsPlaying = false;
-    ttsPaused = false;
-    document.getElementById("tts-icon").textContent = "headphones";
-    document.getElementById("tts-status").textContent = "Klik untuk mendengarkan";
-    document.getElementById("tts-progress-bar").classList.add("hidden");
-    document.getElementById("tts-progress").style.width = "0%";
-  }
-
-  function changeTTSSpeed(val) {
-    if (ttsPlaying) {
-      stopTTS();
-      setTimeout(toggleTTS, 100);
-    }
-  }
-
-  // Load voices (some browsers need this)
-  if (window.speechSynthesis) {
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
   }
 
   // ── Translation ──
@@ -437,7 +363,6 @@ content %}
     const excerptEl = document.getElementById("article-excerpt");
     const contentEl = document.getElementById("article-content");
 
-    // Show loading
     titleEl.style.opacity = "0.5";
     contentEl.style.opacity = "0.5";
 

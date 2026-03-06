@@ -2,88 +2,85 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
   <!-- Search Header & Form -->
   <div class="mb-10">
-    <h1 class="text-3xl font-bold mb-4">
-      {% if query %} Hasil Pencarian untuk: <span class="text-primary">"{{ query }}"</span>
+    <h1 class="text-2xl font-bold mb-4">
+      {% if query %} Hasil Pencarian: <span class="text-gray-500">"{{ query }}"</span>
       {% else %} Cari Artikel {% endif %}
     </h1>
 
     <form action="/cari" method="GET" class="flex gap-3 mb-4">
       <div class="relative flex-1">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-icons text-gray-400">search</span>
+        <span class="absolute left-3 top-1/2 -translate-y-1/2 material-icons text-gray-400 text-lg">search</span>
         <input
           type="text"
           name="q"
           value="{{ query }}"
           placeholder="Ketik kata kunci..."
           autofocus
-          class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+          class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
         />
       </div>
-      <button type="submit" class="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-blue-800 transition text-sm">Cari</button>
+      <button type="submit" class="px-6 py-3 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition text-sm">Cari</button>
     </form>
 
     {% if query %}
-    <p class="text-gray-500">Menemukan {{ total }} hasil terkait.</p>
+    <p class="text-sm text-gray-400">{{ total }} artikel ditemukan.</p>
     {% endif %}
   </div>
 
   {% if query %}
   <div class="flex flex-col lg:flex-row gap-10">
     <!-- Search Results -->
-    <div class="flex-1 space-y-6">
+    <div class="flex-1 space-y-5">
       {% if articles %} {% for article in articles %}
-      <article class="flex flex-col sm:flex-row gap-6 bg-white rounded-xl p-4 border border-gray-200 hover:shadow-md transition-shadow">
-        <div class="sm:w-1/3 flex-shrink-0">
-          <div class="aspect-[4/3] rounded-lg overflow-hidden bg-gray-200">
-            <a href="/artikel/{{ article.slug }}">
-              <img alt="{{ article.title }}" class="w-full h-full object-cover" src="{{ article.thumbnail_url }}" loading="lazy" />
-            </a>
-          </div>
-        </div>
-        <div class="sm:w-2/3 flex flex-col justify-center">
-          <div class="flex items-center space-x-2 mb-2">
-            {% if article.category in categories %}
-            <span class="px-2.5 py-1 text-xs font-semibold rounded-md text-white" style="background-color: {{ categories[article.category].color }}">{{ categories[article.category].label }}</span>
-            {% endif %}
-            <span class="text-xs text-gray-500 flex items-center"><span class="material-icons text-[14px] mr-1">schedule</span> {{ time_ago(article.created_at) }}</span>
-          </div>
-          <h2 class="text-xl font-bold mb-2 hover:text-primary transition-colors">
-            <a href="/artikel/{{ article.slug }}">{{ article.title }}</a>
+      <article class="flex gap-4 group pb-5 {% if not loop.last %}border-b border-gray-100{% endif %}">
+        <a href="/artikel/{{ article.slug }}" class="flex-shrink-0">
+          <img
+            alt="{{ article.title }}"
+            class="w-32 h-24 object-cover rounded-lg"
+            src="{{ article.thumbnail_url }}"
+            loading="lazy"
+            onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=400'"
+          />
+        </a>
+        <div class="flex flex-col justify-center min-w-0">
+          <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1"> {% if article.category in categories %}{{ categories[article.category].label }} &middot; {% endif %} {{ time_ago(article.created_at) }} </span>
+          <h2 class="text-base font-semibold mb-1">
+            <a class="text-gray-900 hover:text-primary transition-colors line-clamp-2" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
           </h2>
-          <p class="text-gray-500 text-sm mb-4 line-clamp-2">{{ article.excerpt }}</p>
+          <p class="text-gray-500 text-sm line-clamp-2">{{ article.excerpt }}</p>
         </div>
       </article>
       {% endfor %} {% else %}
       <!-- No Results -->
       <div class="text-center py-16">
-        <span class="material-icons text-6xl text-gray-300 mb-4">search_off</span>
-        <h2 class="text-xl font-bold text-gray-700 mb-2">Tidak Ditemukan</h2>
-        <p class="text-gray-500">Tidak ada artikel yang cocok dengan pencarian "<em>{{ query }}</em>".</p>
+        <span class="material-icons text-5xl text-gray-300 mb-4 block">search_off</span>
+        <h2 class="text-lg font-bold text-gray-700 mb-2">Tidak Ditemukan</h2>
+        <p class="text-sm text-gray-500">Tidak ada artikel yang cocok dengan "<em>{{ query }}</em>".</p>
       </div>
       {% endif %}
     </div>
 
     <!-- Sidebar -->
-    <aside class="lg:w-80 flex-shrink-0 space-y-6">
+    <aside class="lg:w-80 flex-shrink-0 space-y-8">
       <!-- Popular Searches -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 class="text-lg font-bold mb-4 border-b border-gray-200 pb-3">Pencarian Populer</h3>
+      <div class="border border-gray-100 rounded-xl p-6 bg-white">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Pencarian Populer</h3>
         <div class="flex flex-wrap gap-2">
           {% for key, cat in categories.items() %}
-          <a href="/cari?q={{ cat.label }}" class="px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-200 rounded-full hover:border-primary hover:text-primary transition-colors">{{ cat.label }}</a>
+          <a href="/cari?q={{ cat.label }}" class="px-3 py-1.5 text-xs font-medium bg-gray-50 border border-gray-200 rounded-lg hover:border-gray-400 hover:text-primary transition-colors">{{ cat.label }}</a>
           {% endfor %}
         </div>
       </div>
 
-      <!-- Categories -->
-      <div class="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 class="text-lg font-bold mb-4 border-b border-gray-200 pb-3">Kategori</h3>
-        <ul class="space-y-2">
+      <!-- Kategori -->
+      <div class="border border-gray-100 rounded-xl p-6 bg-white">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Kategori</h3>
+        <ul class="space-y-1">
           {% for key, cat in categories.items() %}
           <li>
-            <a class="flex justify-between items-center py-2 text-gray-700 hover:text-primary group transition-colors" href="/kategori/{{ key }}">
-              <span class="font-medium text-sm">{{ cat.label }}</span>
-              <span class="material-icons text-sm text-gray-400 group-hover:text-primary">chevron_right</span>
+            <a class="flex justify-between items-center py-2.5 px-3 text-gray-600 hover:text-primary hover:bg-gray-50 rounded-lg transition-all text-sm" href="/kategori/{{ key }}">
+              <span class="font-medium">{{ cat.label }}</span>
+              <span class="text-gray-300 text-xs">&rsaquo;</span>
             </a>
           </li>
           {% endfor %}

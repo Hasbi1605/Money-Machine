@@ -25,11 +25,11 @@
       <!-- Hero + Sub-heroes -->
       <section class="flex flex-col md:flex-row gap-4">
         {% if hero %}
-        <div class="w-full md:w-3/5">
-          <a href="/artikel/{{ hero.slug }}" class="group block relative overflow-hidden rounded-xl">
+        <div class="w-full md:w-3/5 md:min-h-[480px]">
+          <a href="/artikel/{{ hero.slug }}" class="group block relative overflow-hidden rounded-xl h-full">
             <img
               alt="{{ hero.title }}"
-              class="w-full h-72 md:h-[400px] object-cover group-hover:scale-105 transition-transform duration-500"
+              class="w-full h-full min-h-[300px] object-cover group-hover:scale-105 transition-transform duration-500"
               src="{{ hero.thumbnail_url }}"
               loading="eager"
               onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=1200'"
@@ -46,12 +46,12 @@
           </a>
         </div>
         {% endif %} {% if sub_heroes %}
-        <div class="w-full md:w-2/5 flex flex-col gap-3">
+        <div class="w-full md:w-2/5 flex flex-col gap-3 md:min-h-[480px]">
           {% for item in sub_heroes %}
-          <a href="/artikel/{{ item.slug }}" class="group block relative overflow-hidden rounded-xl flex-1 min-h-[120px]">
+          <a href="/artikel/{{ item.slug }}" class="group block relative overflow-hidden rounded-xl flex-1">
             <img
               alt="{{ item.title }}"
-              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              class="w-full h-full min-h-[120px] object-cover group-hover:scale-105 transition-transform duration-500"
               src="{{ item.thumbnail_url }}"
               loading="eager"
               onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=800'"

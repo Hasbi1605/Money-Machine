@@ -5,51 +5,54 @@
     <div class="w-full lg:w-2/3 flex flex-col gap-8">
       <!-- Category Header -->
       <div class="mb-2">
-        <h1 class="text-3xl font-bold mb-2">{{ cat_info.label }}</h1>
-        <p class="text-gray-500">{{ total }} artikel ditemukan</p>
+        <h1 class="text-2xl font-bold mb-1">{{ cat_info.label }}</h1>
+        <p class="text-sm text-gray-400">{{ total }} artikel</p>
       </div>
 
       {% if articles %}
       <!-- Featured Article (first one) -->
       {% if articles|length > 0 %} {% set featured = articles[0] %}
-      <article class="flex flex-col md:flex-row gap-6 mb-4">
+      <article class="flex flex-col md:flex-row gap-6 mb-2">
         <div class="w-full md:w-1/2">
           <a href="/artikel/{{ featured.slug }}">
-            <img alt="{{ featured.title }}" class="w-full h-64 object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow" src="{{ featured.thumbnail_url }}" loading="eager" />
+            <img
+              alt="{{ featured.title }}"
+              class="w-full h-64 object-cover rounded-lg"
+              src="{{ featured.thumbnail_url }}"
+              loading="eager"
+              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=800'"
+            />
           </a>
         </div>
         <div class="w-full md:w-1/2 flex flex-col justify-center">
-          <h2 class="text-2xl font-bold mb-3 leading-tight">
+          <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-2">{{ cat_info.label }}</span>
+          <h2 class="text-xl font-bold mb-3 leading-tight">
             <a class="hover:text-primary transition-colors" href="/artikel/{{ featured.slug }}">{{ featured.title }}</a>
           </h2>
-          <p class="text-gray-500 mb-4 line-clamp-3">{{ featured.excerpt }}</p>
-          <div class="flex items-center text-sm text-gray-500 mb-3">
-            <span>{{ time_ago(featured.created_at) }}</span>
-            <span class="mx-2">&middot;</span>
-            <span>{{ featured.views or 0 }} kali dibaca</span>
-          </div>
-          <div>
-            <span class="inline-block text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide" style="background-color: {{ cat_info.color }}">{{ cat_info.label }}</span>
-          </div>
+          <p class="text-gray-500 text-sm mb-3 line-clamp-3">{{ featured.excerpt }}</p>
+          <span class="text-xs text-gray-400">{{ time_ago(featured.created_at) }} &middot; {{ featured.views or 0 }} dibaca</span>
         </div>
       </article>
       {% endif %}
 
-      <!-- Article Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Article List -->
+      <div class="space-y-5">
         {% for article in articles[1:] %}
-        <article class="bg-white border border-gray-200 rounded-lg p-4 flex gap-4 transition-transform hover:-translate-y-1 hover:shadow-md">
+        <article class="flex gap-4 group pb-5 {% if not loop.last %}border-b border-gray-100{% endif %}">
           <a href="/artikel/{{ article.slug }}" class="flex-shrink-0">
-            <img alt="{{ article.title }}" class="w-24 h-24 object-cover rounded-md" src="{{ article.thumbnail_url }}" loading="lazy" />
+            <img
+              alt="{{ article.title }}"
+              class="w-28 h-20 object-cover rounded-lg"
+              src="{{ article.thumbnail_url }}"
+              loading="lazy"
+              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=400'"
+            />
           </a>
-          <div class="flex flex-col justify-between">
-            <h3 class="text-base font-bold leading-snug mb-2">
-              <a class="hover:text-primary line-clamp-2 transition-colors" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
+          <div class="flex flex-col justify-center min-w-0">
+            <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1"> {{ cat_info.label }} &middot; {{ time_ago(article.created_at) }} </span>
+            <h3 class="text-sm font-semibold leading-snug">
+              <a class="text-gray-900 hover:text-primary line-clamp-2 transition-colors" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
             </h3>
-            <div>
-              <span class="inline-block text-white text-[10px] font-semibold px-2 py-0.5 rounded uppercase mb-1" style="background-color: {{ cat_info.color }}">{{ cat_info.label }}</span>
-              <p class="text-xs text-gray-500">{{ time_ago(article.created_at) }}</p>
-            </div>
           </div>
         </article>
         {% endfor %}
@@ -57,20 +60,20 @@
 
       <!-- Pagination -->
       {% if total_pages > 1 %}
-      <div class="flex justify-center pt-8 border-t border-gray-200 mt-4">
+      <div class="flex justify-center pt-8 border-t border-gray-100 mt-2">
         <nav class="flex items-center space-x-2">
           {% if page > 1 %}
-          <a href="/kategori/{{ category }}?page={{ page - 1 }}" class="inline-flex items-center p-2 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+          <a href="/kategori/{{ category }}?page={{ page - 1 }}" class="inline-flex items-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50">
             <span class="material-icons text-sm">chevron_left</span>
           </a>
           {% endif %} {% for p in range(1, total_pages + 1) %} {% if p == page %}
-          <span class="inline-flex items-center px-4 py-2 rounded-md border border-primary bg-primary text-sm font-medium text-white">{{ p }}</span>
+          <span class="inline-flex items-center px-4 py-2 rounded-lg bg-gray-900 text-sm font-medium text-white">{{ p }}</span>
           {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
-          <a href="/kategori/{{ category }}?page={{ p }}" class="inline-flex items-center px-4 py-2 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-900 hover:bg-gray-50">{{ p }}</a>
+          <a href="/kategori/{{ category }}?page={{ p }}" class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">{{ p }}</a>
           {% elif p == 4 or p == total_pages - 3 %}
-          <span class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500">...</span>
+          <span class="px-2 text-sm text-gray-400">...</span>
           {% endif %} {% endfor %} {% if page < total_pages %}
-          <a href="/kategori/{{ category }}?page={{ page + 1 }}" class="inline-flex items-center p-2 rounded-md border border-gray-200 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+          <a href="/kategori/{{ category }}?page={{ page + 1 }}" class="inline-flex items-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50">
             <span class="material-icons text-sm">chevron_right</span>
           </a>
           {% endif %}
@@ -79,46 +82,46 @@
       {% endif %} {% else %}
       <!-- Empty State -->
       <div class="text-center py-16">
-        <span class="material-icons text-6xl text-gray-300 mb-4">article</span>
-        <h2 class="text-xl font-bold text-gray-700 mb-2">Belum Ada Artikel</h2>
-        <p class="text-gray-500 mb-6">Artikel untuk kategori {{ cat_info.label }} akan segera hadir.</p>
-        <a href="/" class="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-blue-800 transition"> <span class="material-icons text-sm mr-1">arrow_back</span> Kembali ke Beranda </a>
+        <span class="material-icons text-5xl text-gray-300 mb-4 block">article</span>
+        <h2 class="text-lg font-bold text-gray-700 mb-2">Belum Ada Artikel</h2>
+        <p class="text-gray-500 text-sm mb-6">Artikel untuk kategori {{ cat_info.label }} akan segera hadir.</p>
+        <a href="/" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Kembali ke Beranda</a>
       </div>
       {% endif %}
     </div>
 
-    <!-- Sidebar -->
-    <aside class="w-full lg:w-1/3 flex flex-col gap-6">
+    <!-- Sidebar (consistent with homepage) -->
+    <aside class="w-full lg:w-1/3 flex flex-col gap-8">
       <!-- Trending -->
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
-          Trending
-          <span class="material-icons text-red-500 text-xl">trending_up</span>
-        </h3>
+      <div class="border border-gray-100 rounded-xl p-6 bg-white">
+        <h3 class="text-lg font-bold text-gray-900 mb-5 border-b-2 border-gray-900 pb-2 inline-block">Trending</h3>
         <ul class="space-y-4">
-          {% for item in trending %}
-          <li class="flex gap-4 items-start {% if not loop.last %}border-b border-gray-100 pb-4{% endif %}">
-            <span class="text-3xl font-bold text-gray-200 leading-none">{{ loop.index }}</span>
+          {% for item in trending[:5] %}
+          <li class="flex gap-3 items-start {% if not loop.last %}pb-4 border-b border-gray-50{% endif %}">
+            <span class="text-2xl font-bold leading-none flex-shrink-0 mt-0.5 {% if loop.index <= 3 %}text-primary{% else %}text-gray-300{% endif %}">{{ loop.index }}</span>
             <div>
-              <h4 class="font-semibold text-sm leading-tight mb-1">
-                <a class="hover:text-primary transition-colors" href="/artikel/{{ item.slug }}">{{ item.title }}</a>
+              <h4 class="text-sm font-semibold leading-snug mb-1">
+                <a class="text-gray-900 hover:text-primary transition-colors line-clamp-2" href="/artikel/{{ item.slug }}">{{ item.title }}</a>
               </h4>
-              <p class="text-xs text-gray-500 flex items-center"><span class="material-icons text-[12px] mr-1">schedule</span> {{ time_ago(item.created_at) }}</p>
+              <span class="text-xs text-gray-400">{{ time_ago(item.created_at) }}</span>
             </div>
           </li>
           {% endfor %}
         </ul>
       </div>
 
-      <!-- Categories -->
-      <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 class="text-xl font-bold mb-4">Kategori</h3>
-        <ul class="space-y-2">
+      <!-- Kategori -->
+      <div class="border border-gray-100 rounded-xl p-6 bg-white">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Kategori</h3>
+        <ul class="space-y-1">
           {% for key, cat in categories.items() %}
           <li>
-            <a class="flex justify-between items-center py-2 text-gray-700 hover:text-primary group transition-colors" href="/kategori/{{ key }}">
+            <a
+              class="flex justify-between items-center py-2.5 px-3 text-gray-600 hover:text-primary hover:bg-gray-50 rounded-lg transition-all text-sm {% if key == category %}text-primary font-semibold{% endif %}"
+              href="/kategori/{{ key }}"
+            >
               <span class="font-medium">{{ cat.label }}</span>
-              <span class="material-icons text-sm text-gray-400 group-hover:text-primary transition-transform group-hover:translate-x-1">chevron_right</span>
+              <span class="text-gray-300 text-xs">&rsaquo;</span>
             </a>
           </li>
           {% endfor %}
