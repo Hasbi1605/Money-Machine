@@ -1,133 +1,97 @@
-{% extends "base.html" %} {% block meta_description %}Berita {{ cat_info.label }} terkini. Update harian dari CikalNews.{% endblock %} {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-  <div class="flex flex-col lg:flex-row gap-8">
-    <!-- Main Content -->
-    <div class="w-full lg:w-2/3 flex flex-col gap-8">
-      <!-- Category Header -->
-      <div class="mb-2">
-        <h1 class="text-2xl font-bold mb-1">{{ cat_info.label }}</h1>
-        <p class="text-sm text-gray-400">{{ total }} artikel</p>
-      </div>
-
-      {% if articles %}
-      <!-- Featured Article (first one) -->
-      {% if articles|length > 0 %} {% set featured = articles[0] %}
-      <article class="flex flex-col md:flex-row gap-6 mb-2">
-        <div class="w-full md:w-1/2">
-          <a href="/artikel/{{ featured.slug }}">
-            <img
-              alt="{{ featured.title }}"
-              class="w-full h-64 object-cover rounded-lg"
-              src="{{ featured.thumbnail_url }}"
-              loading="eager"
-              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=800'"
-            />
-          </a>
-        </div>
-        <div class="w-full md:w-1/2 flex flex-col justify-center">
-          <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-2">{{ cat_info.label }}</span>
-          <h2 class="text-xl font-bold mb-3 leading-tight">
-            <a class="hover:text-primary transition-colors" href="/artikel/{{ featured.slug }}">{{ featured.title }}</a>
-          </h2>
-          <p class="text-gray-500 text-sm mb-3 line-clamp-3">{{ featured.excerpt }}</p>
-          <span class="text-xs text-gray-400">{{ time_ago(featured.created_at) }} &middot; {{ featured.views or 0 }} dibaca</span>
-        </div>
-      </article>
-      {% endif %}
-
-      <!-- Article List -->
-      <div class="space-y-5">
-        {% for article in articles[1:] %}
-        <article class="flex gap-4 group pb-5 {% if not loop.last %}border-b border-gray-100{% endif %}">
-          <a href="/artikel/{{ article.slug }}" class="flex-shrink-0">
-            <img
-              alt="{{ article.title }}"
-              class="w-28 h-20 object-cover rounded-lg"
-              src="{{ article.thumbnail_url }}"
-              loading="lazy"
-              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=400'"
-            />
-          </a>
-          <div class="flex flex-col justify-center min-w-0">
-            <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium mb-1"> {{ cat_info.label }} &middot; {{ time_ago(article.created_at) }} </span>
-            <h3 class="text-sm font-semibold leading-snug">
-              <a class="text-gray-900 hover:text-primary line-clamp-2 transition-colors" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
-            </h3>
-          </div>
-        </article>
-        {% endfor %}
-      </div>
-
-      <!-- Pagination -->
-      {% if total_pages > 1 %}
-      <div class="flex justify-center pt-8 border-t border-gray-100 mt-2">
-        <nav class="flex items-center space-x-2">
-          {% if page > 1 %}
-          <a href="/kategori/{{ category }}?page={{ page - 1 }}" class="inline-flex items-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50">
-            <span class="material-icons text-sm">chevron_left</span>
-          </a>
-          {% endif %} {% for p in range(1, total_pages + 1) %} {% if p == page %}
-          <span class="inline-flex items-center px-4 py-2 rounded-lg bg-gray-900 text-sm font-medium text-white">{{ p }}</span>
-          {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
-          <a href="/kategori/{{ category }}?page={{ p }}" class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">{{ p }}</a>
-          {% elif p == 4 or p == total_pages - 3 %}
-          <span class="px-2 text-sm text-gray-400">...</span>
-          {% endif %} {% endfor %} {% if page < total_pages %}
-          <a href="/kategori/{{ category }}?page={{ page + 1 }}" class="inline-flex items-center px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-500 hover:bg-gray-50">
-            <span class="material-icons text-sm">chevron_right</span>
-          </a>
-          {% endif %}
-        </nav>
-      </div>
-      {% endif %} {% else %}
-      <!-- Empty State -->
-      <div class="text-center py-16">
-        <span class="material-icons text-5xl text-gray-300 mb-4 block">article</span>
-        <h2 class="text-lg font-bold text-gray-700 mb-2">Belum Ada Artikel</h2>
-        <p class="text-gray-500 text-sm mb-6">Artikel untuk kategori {{ cat_info.label }} akan segera hadir.</p>
-        <a href="/" class="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Kembali ke Beranda</a>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Sidebar (consistent with homepage) -->
-    <aside class="w-full lg:w-1/3 flex flex-col gap-8">
-      <!-- Trending -->
-      <div class="border border-gray-100 rounded-xl p-6 bg-white">
-        <h3 class="text-lg font-bold text-gray-900 mb-5 border-b-2 border-gray-900 pb-2 inline-block">Trending</h3>
-        <ul class="space-y-4">
-          {% for item in trending[:5] %}
-          <li class="flex gap-3 items-start {% if not loop.last %}pb-4 border-b border-gray-50{% endif %}">
-            <span class="text-2xl font-bold leading-none flex-shrink-0 mt-0.5 {% if loop.index <= 3 %}text-primary{% else %}text-gray-300{% endif %}">{{ loop.index }}</span>
-            <div>
-              <h4 class="text-sm font-semibold leading-snug mb-1">
-                <a class="text-gray-900 hover:text-primary transition-colors line-clamp-2" href="/artikel/{{ item.slug }}">{{ item.title }}</a>
-              </h4>
-              <span class="text-xs text-gray-400">{{ time_ago(item.created_at) }}</span>
-            </div>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-
-      <!-- Kategori -->
-      <div class="border border-gray-100 rounded-xl p-6 bg-white">
-        <h3 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Kategori</h3>
-        <ul class="space-y-1">
-          {% for key, cat in categories.items() %}
-          <li>
-            <a
-              class="flex justify-between items-center py-2.5 px-3 text-gray-600 hover:text-primary hover:bg-gray-50 rounded-lg transition-all text-sm {% if key == category %}text-primary font-semibold{% endif %}"
-              href="/kategori/{{ key }}"
-            >
-              <span class="font-medium">{{ cat.label }}</span>
-              <span class="text-gray-300 text-xs">&rsaquo;</span>
-            </a>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </aside>
+{% extends "base.html" %} {% block meta_description %}Berita {{ cat_info.label }} terkini — CikalNews{% endblock %} {% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+  <!-- Category Header -->
+  <div class="border-b-2 border-gray-900 pb-4 mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">{{ cat_info.label }}</h1>
+    <p class="text-sm text-gray-400 mt-1">{{ total }} artikel</p>
   </div>
+
+  {% if articles %}
+
+  <!-- Hero Featured Article -->
+  {% if articles|length > 0 %} {% set featured = articles[0] %}
+  <article class="mb-10">
+    <div class="flex flex-col md:flex-row gap-6">
+      <div class="w-full md:w-3/5">
+        <a href="/artikel/{{ featured.slug }}" class="block group">
+          <img
+            alt="{{ featured.title }}"
+            class="w-full h-64 md:h-80 object-cover rounded-lg group-hover:opacity-90 transition-opacity"
+            src="{{ featured.thumbnail_url }}"
+            loading="eager"
+            onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=1200'"
+          />
+        </a>
+      </div>
+      <div class="w-full md:w-2/5 flex flex-col justify-center">
+        <span class="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-3">{{ cat_info.label }}</span>
+        <h2 class="text-2xl md:text-3xl font-bold leading-tight mb-4">
+          <a class="text-gray-900 hover:text-primary transition-colors" href="/artikel/{{ featured.slug }}">{{ featured.title }}</a>
+        </h2>
+        <p class="text-gray-500 text-sm leading-relaxed mb-4 line-clamp-3">{{ featured.excerpt }}</p>
+        <div class="flex items-center text-xs text-gray-400">
+          <time>{{ time_ago(featured.created_at) }}</time>
+          <span class="mx-2">&middot;</span>
+          <span>{{ featured.views or 0 }} dibaca</span>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <hr class="border-gray-100 mb-8" />
+  {% endif %}
+
+  <!-- Article Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-8">
+    {% for article in articles[1:] %}
+    <article class="group">
+      <a href="/artikel/{{ article.slug }}" class="block mb-3">
+        <img
+          alt="{{ article.title }}"
+          class="w-full h-48 object-cover rounded-lg group-hover:opacity-90 transition-opacity"
+          src="{{ article.thumbnail_url }}"
+          loading="lazy"
+          onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=600'"
+        />
+      </a>
+      <span class="text-[10px] text-gray-400 uppercase tracking-widest font-medium">{{ time_ago(article.created_at) }}</span>
+      <h3 class="text-base font-bold leading-snug mt-1 mb-2">
+        <a class="text-gray-900 hover:text-primary transition-colors line-clamp-2" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
+      </h3>
+      <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">{{ article.excerpt }}</p>
+    </article>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="flex justify-center pt-10 mt-10 border-t border-gray-100">
+    <nav class="flex items-center space-x-1">
+      {% if page > 1 %}
+      <a href="/kategori/{{ category }}?page={{ page - 1 }}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+        <span class="material-icons text-sm">chevron_left</span>
+      </a>
+      {% endif %} {% for p in range(1, total_pages + 1) %} {% if p == page %}
+      <span class="inline-flex items-center px-4 py-2 rounded-lg bg-gray-900 text-sm font-medium text-white">{{ p }}</span>
+      {% elif p <= 3 or p >= total_pages - 2 or (p >= page - 1 and p <= page + 1) %}
+      <a href="/kategori/{{ category }}?page={{ p }}" class="inline-flex items-center px-4 py-2 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition-colors">{{ p }}</a>
+      {% elif p == 4 or p == total_pages - 3 %}
+      <span class="px-2 text-sm text-gray-400">...</span>
+      {% endif %} {% endfor %} {% if page < total_pages %}
+      <a href="/kategori/{{ category }}?page={{ page + 1 }}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+        <span class="material-icons text-sm">chevron_right</span>
+      </a>
+      {% endif %}
+    </nav>
+  </div>
+  {% endif %} {% else %}
+  <!-- Empty State -->
+  <div class="text-center py-20">
+    <span class="material-icons text-5xl text-gray-200 mb-4 block">article</span>
+    <h2 class="text-lg font-bold text-gray-700 mb-2">Belum Ada Artikel</h2>
+    <p class="text-sm text-gray-400 mb-6">Artikel untuk kategori {{ cat_info.label }} akan segera hadir.</p>
+    <a href="/" class="inline-flex items-center px-5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition">Kembali ke Beranda</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
