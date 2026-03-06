@@ -1,95 +1,101 @@
 {% extends "base.html" %} {% block content %}
-<div class="home-layout">
-  <div class="home-main">
-    <!-- Hero Section -->
-    {% if hero %}
-    <section class="hero-section">
-      <a href="/artikel/{{ hero.slug }}" class="hero-card">
-        <div class="hero-image">
-          <img src="{{ hero.thumbnail_url }}" alt="{{ hero.title }}" loading="eager" />
-          <span class="hero-badge" style="background: {{ categories[hero.category].color }}"> {{ categories[hero.category].icon }} {{ categories[hero.category].label }} </span>
-        </div>
-        <div class="hero-content">
-          <h1 class="hero-title">{{ hero.title }}</h1>
-          <p class="hero-excerpt">{{ hero.excerpt }}</p>
-          <span class="hero-time">{{ time_ago(hero.created_at) }}</span>
-        </div>
-      </a>
-    </section>
-    {% endif %}
-
-    <!-- Category Sections -->
-    {% for cat_key, articles in category_articles.items() %} {% set cat = categories[cat_key] %}
-    <section class="category-section">
-      <div class="section-header">
-        <h2 class="section-title" style="border-color: {{ cat.color }}">{{ cat.icon }} {{ cat.label }}</h2>
-        <a href="/kategori/{{ cat_key }}" class="see-all">Lihat Semua →</a>
-      </div>
-
-      <div class="article-grid">
-        {% for article in articles[:1] %}
-        <a href="/artikel/{{ article.slug }}" class="card card-featured">
-          <div class="card-image">
-            <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy" />
-          </div>
-          <div class="card-body">
-            <h3 class="card-title">{{ article.title }}</h3>
-            <p class="card-excerpt">{{ article.excerpt[:120] }}...</p>
-            <span class="card-time">{{ time_ago(article.created_at) }}</span>
-          </div>
-        </a>
-        {% endfor %}
-
-        <div class="card-list-side">
-          {% for article in articles[1:5] %}
-          <a href="/artikel/{{ article.slug }}" class="card card-horizontal">
-            <div class="card-image-sm">
-              <img src="{{ article.thumbnail_url }}" alt="{{ article.title }}" loading="lazy" />
-            </div>
-            <div class="card-body">
-              <h3 class="card-title-sm">{{ article.title }}</h3>
-              <span class="card-time">{{ time_ago(article.created_at) }}</span>
-            </div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+  <div class="flex flex-col lg:flex-row gap-8">
+    <!-- Main Content -->
+    <div class="w-full lg:w-2/3 flex flex-col gap-8">
+      <!-- Hero Section -->
+      {% if hero %}
+      <article class="flex flex-col md:flex-row gap-6">
+        <div class="w-full md:w-1/2">
+          <a href="/artikel/{{ hero.slug }}">
+            <img alt="{{ hero.title }}" class="w-full h-64 object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow" src="{{ hero.thumbnail_url }}" loading="eager" />
           </a>
+        </div>
+        <div class="w-full md:w-1/2 flex flex-col justify-center">
+          <h1 class="text-3xl font-bold mb-4 leading-tight">
+            <a class="hover:text-primary transition-colors" href="/artikel/{{ hero.slug }}">{{ hero.title }}</a>
+          </h1>
+          <p class="text-gray-500 mb-4 line-clamp-3">{{ hero.excerpt }}</p>
+          <div class="flex items-center text-sm text-gray-500 mb-4">
+            <span>{{ time_ago(hero.created_at) }}</span>
+          </div>
+          {% if hero.category in categories %}
+          <div>
+            <a href="/kategori/{{ hero.category }}" class="inline-block bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide">{{ categories[hero.category].label }}</a>
+          </div>
+          {% endif %}
+        </div>
+      </article>
+      {% endif %}
+
+      <!-- Category Sections -->
+      {% for cat_key, articles in category_articles.items() %} {% set cat = categories[cat_key] %}
+      <section>
+        <div class="flex justify-between items-center mt-4 mb-4">
+          <h2 class="text-2xl font-bold">{{ cat.label }}</h2>
+          <a class="text-gray-500 hover:text-primary font-medium flex items-center text-sm transition-colors" href="/kategori/{{ cat_key }}"> Lihat Semua <span class="material-icons text-sm ml-1">arrow_forward</span> </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {% for article in articles[:4] %}
+          <article class="bg-white border border-gray-200 rounded-lg p-4 flex gap-4 transition-transform hover:-translate-y-1 hover:shadow-md">
+            <a href="/artikel/{{ article.slug }}" class="flex-shrink-0">
+              <img alt="{{ article.title }}" class="w-24 h-24 object-cover rounded-md" src="{{ article.thumbnail_url }}" loading="lazy" />
+            </a>
+            <div class="flex flex-col justify-between">
+              <h3 class="text-base font-bold leading-snug mb-2">
+                <a class="hover:text-primary line-clamp-2 transition-colors" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
+              </h3>
+              <div>
+                <span class="inline-block text-white text-[10px] font-semibold px-2 py-0.5 rounded uppercase mb-1" style="background-color: {{ cat.color }}">{{ cat.label }}</span>
+                <p class="text-xs text-gray-500">{{ time_ago(article.created_at) }}</p>
+              </div>
+            </div>
+          </article>
           {% endfor %}
         </div>
-      </div>
-    </section>
-    {% endfor %}
-  </div>
+      </section>
+      {% endfor %}
+    </div>
 
-  <!-- Sidebar -->
-  <aside class="sidebar">
-    <div class="sidebar-widget">
-      <h3 class="widget-title">🔥 Trending</h3>
-      <ol class="trending-list">
-        {% for item in trending %}
-        <li>
-          <a href="/artikel/{{ item.slug }}" class="trending-link">
-            <span class="trending-num">{{ loop.index }}</span>
-            <div class="trending-info">
-              <span class="trending-cat" style="color: {{ categories[item.category].color if item.category in categories else '#666' }}"> {{ categories[item.category].label if item.category in categories else item.category }} </span>
-              <p class="trending-title">{{ item.title }}</p>
+    <!-- Sidebar -->
+    <aside class="w-full lg:w-1/3 flex flex-col gap-6">
+      <!-- Trending -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+          Trending
+          <span class="material-icons text-red-500 text-xl">trending_up</span>
+        </h3>
+        <ul class="space-y-4">
+          {% for item in trending %}
+          <li class="flex gap-4 items-start {% if not loop.last %}border-b border-gray-100 pb-4{% endif %}">
+            <span class="text-3xl font-bold text-gray-200 leading-none">{{ loop.index }}</span>
+            <div>
+              <h4 class="font-semibold text-sm leading-tight mb-1">
+                <a class="hover:text-primary transition-colors" href="/artikel/{{ item.slug }}">{{ item.title }}</a>
+              </h4>
+              <p class="text-xs text-gray-500 flex items-center"><span class="material-icons text-[12px] mr-1">schedule</span> {{ time_ago(item.created_at) }}</p>
             </div>
-          </a>
-        </li>
-        {% endfor %}
-      </ol>
-    </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
 
-    <div class="sidebar-widget">
-      <h3 class="widget-title">📂 Kategori</h3>
-      <ul class="category-list">
-        {% for key, cat in categories.items() %}
-        <li>
-          <a href="/kategori/{{ key }}" class="category-link">
-            <span>{{ cat.icon }} {{ cat.label }}</span>
-            <span class="arrow">→</span>
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-  </aside>
+      <!-- Categories -->
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 class="text-xl font-bold mb-4">Kategori</h3>
+        <ul class="space-y-2">
+          {% for key, cat in categories.items() %}
+          <li>
+            <a class="flex justify-between items-center py-2 text-gray-700 hover:text-primary group transition-colors" href="/kategori/{{ key }}">
+              <span class="font-medium">{{ cat.label }}</span>
+              <span class="material-icons text-sm text-gray-400 group-hover:text-primary transition-transform group-hover:translate-x-1">chevron_right</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </aside>
+  </div>
 </div>
 {% endblock %}

@@ -13,81 +13,91 @@
     <meta property="og:image" content="{% block og_image %}{% endblock %}" />
     <meta property="og:site_name" content="CikalNews" />
 
-    <!-- Fonts -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#1A237E",
+              "background-light": "#FFFFFF",
+              "background-dark": "#121212",
+              surface: { light: "#F3F4F6", dark: "#1E1E1E" },
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "0.5rem",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
 
-    <!-- CSS -->
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="/static/style.css" />
 
     {% block head %}{% endblock %}
   </head>
-  <body>
-    <!-- Top Bar -->
-    <div class="topbar">
-      <div class="container topbar-inner">
-        <span class="topbar-date">{{ now().strftime('%A, %d %B %Y') }}</span>
-        <div class="topbar-links">
-          <a href="/cari">🔍 Cari</a>
-        </div>
-      </div>
-    </div>
-
+  <body class="bg-gray-50 text-gray-900 font-[Inter,sans-serif] antialiased min-h-screen flex flex-col">
     <!-- Header -->
-    <header class="header">
-      <div class="container header-inner">
-        <a href="/" class="logo"> <span class="logo-cikal">Cikal</span><span class="logo-news">News</span> </a>
-        <p class="tagline">Portal Berita AI Indonesia</p>
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-md bg-white/90">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <div class="flex-shrink-0 flex items-center">
+            <a href="/" class="text-2xl font-bold text-primary tracking-tight">Cikal<span class="text-gray-900">News</span></a>
+          </div>
+          <nav class="hidden md:flex space-x-6">
+            <a href="/" class="{% if request.url.path == '/' %}text-primary font-semibold{% else %}text-gray-600 hover:text-primary{% endif %} px-3 py-2 text-sm font-medium transition-colors">Beranda</a>
+            {% for key, cat in categories.items() %}
+            <a href="/kategori/{{ key }}" class="{% if request.url.path == '/kategori/' + key %}text-primary font-semibold{% else %}text-gray-600 hover:text-primary{% endif %} px-3 py-2 text-sm font-medium transition-colors"
+              >{{ cat.label }}</a
+            >
+            {% endfor %}
+          </nav>
+          <div class="flex items-center space-x-3">
+            <a href="/cari" class="text-gray-500 hover:text-primary focus:outline-none p-2 transition-colors">
+              <span class="material-icons">search</span>
+            </a>
+            <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-primary focus:outline-none p-2" onclick="document.getElementById('mobile-menu').classList.toggle('hidden')">
+              <span class="material-icons">menu</span>
+            </button>
+          </div>
+        </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t border-gray-200 py-3 pb-4">
+          <a href="/" class="block px-3 py-2 text-sm font-medium {% if request.url.path == '/' %}text-primary{% else %}text-gray-600 hover:text-primary{% endif %}">Beranda</a>
+          {% for key, cat in categories.items() %}
+          <a href="/kategori/{{ key }}" class="block px-3 py-2 text-sm font-medium {% if request.url.path == '/kategori/' + key %}text-primary{% else %}text-gray-600 hover:text-primary{% endif %}">{{ cat.label }}</a>
+          {% endfor %}
+        </div>
       </div>
     </header>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-      <div class="container nav-inner">
-        <button class="nav-toggle" onclick="document.querySelector('.nav-menu').classList.toggle('active')">☰ Menu</button>
-        <ul class="nav-menu">
-          <li><a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">🏠 Beranda</a></li>
-          {% for key, cat in categories.items() %}
-          <li>
-            <a href="/kategori/{{ key }}" class="nav-link {% if request.url.path == '/kategori/' + key %}active{% endif %}" style="--cat-color: {{ cat.color }}"> {{ cat.icon }} {{ cat.label }} </a>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-    </nav>
-
     <!-- Main Content -->
-    <main class="main">
-      <div class="container">{% block content %}{% endblock %}</div>
-    </main>
+    <main class="flex-grow">{% block content %}{% endblock %}</main>
 
     <!-- Footer -->
-    <footer class="footer">
-      <div class="container">
-        <div class="footer-grid">
-          <div class="footer-about">
-            <h3><span class="logo-cikal">Cikal</span><span class="logo-news">News</span></h3>
-            <p>Portal berita terkini yang ditenagai oleh AI. Menyajikan informasi akurat dan analisis mendalam dalam Bahasa Indonesia.</p>
+    <footer class="bg-white border-t border-gray-200 mt-12 py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+          <p class="text-sm text-gray-500">&copy; {{ now().year }} CikalNews. Hak Cipta Dilindungi.</p>
+          <div class="flex flex-wrap justify-center items-center gap-6 text-sm">
+            <a href="/" class="text-gray-600 hover:text-primary transition-colors">Beranda</a>
+            <a href="/cari" class="text-gray-600 hover:text-primary transition-colors">Cari Artikel</a>
+            {% for key, cat in categories.items() %}
+            <a href="/kategori/{{ key }}" class="text-gray-600 hover:text-primary transition-colors">{{ cat.label }}</a>
+            {% endfor %}
           </div>
-          <div class="footer-cats">
-            <h4>Kategori</h4>
-            <ul>
-              {% for key, cat in categories.items() %}
-              <li><a href="/kategori/{{ key }}">{{ cat.icon }} {{ cat.label }}</a></li>
-              {% endfor %}
-            </ul>
-          </div>
-          <div class="footer-info">
-            <h4>Informasi</h4>
-            <ul>
-              <li><a href="/">Beranda</a></li>
-              <li><a href="/cari">Cari Artikel</a></li>
-            </ul>
-          </div>
-        </div>
-        <div class="footer-bottom">
-          <p>&copy; {{ now().year }} CikalNews. Ditenagai oleh AI ✨</p>
         </div>
       </div>
     </footer>
