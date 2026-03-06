@@ -22,7 +22,7 @@ content %}
           </a>
           {% endif %}
         </div>
-        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-6">{{ article.title }}</h1>
+        <h1 id="article-title" class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-6">{{ article.title }}</h1>
         <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-t border-gray-200 py-4 mb-8">
           <div class="flex items-center space-x-4 mb-4 sm:mb-0">
             <div>
@@ -34,6 +34,20 @@ content %}
             </div>
           </div>
           <div class="flex items-center space-x-3">
+            <!-- Language Selector -->
+            <div class="relative mr-3">
+              <select
+                id="lang-selector"
+                onchange="translateArticle(this.value)"
+                class="text-xs bg-gray-100 border border-gray-300 rounded-lg px-2 py-1.5 pr-6 appearance-none cursor-pointer hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="id" selected>🇮🇩 ID</option>
+                <option value="en">🇬🇧 EN</option>
+                <option value="ms">🇲🇾 MS</option>
+                <option value="zh">🇨🇳 ZH</option>
+                <option value="ja">🇯🇵 JA</option>
+              </select>
+            </div>
             <span class="text-sm text-gray-500 mr-2">Bagikan:</span>
             <a href="https://twitter.com/intent/tweet?text={{ article.title | urlencode }}&url={{ request.url }}" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-blue-400 transition-colors">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -67,6 +81,80 @@ content %}
         </div>
       </header>
 
+      <!-- ⚡ AI Summary ("Baca 30 Detik") -->
+      {% if ai_summary %}
+      <div id="ai-summary-box" class="mb-8 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl overflow-hidden">
+        <button
+          onclick="
+            document.getElementById('summary-content').classList.toggle('hidden');
+            this.querySelector('.summary-arrow').classList.toggle('rotate-180');
+          "
+          class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/50 transition-colors"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⚡</span>
+            <span class="font-bold text-indigo-900">Ringkasan 30 Detik</span>
+            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">AI</span>
+          </div>
+          <span class="material-icons text-indigo-500 summary-arrow transition-transform duration-300">expand_more</span>
+        </button>
+        <div id="summary-content" class="px-5 pb-5">
+          <ul class="space-y-3">
+            {% for point in ai_summary %}
+            <li class="flex items-start gap-3">
+              <span class="flex-shrink-0 w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{{ loop.index }}</span>
+              <span class="text-gray-800 text-sm leading-relaxed">{{ point }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      {% else %}
+      <div id="ai-summary-box" class="mb-8 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl overflow-hidden">
+        <button onclick="loadSummary()" id="summary-load-btn" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-indigo-50/50 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⚡</span>
+            <span class="font-bold text-indigo-900">Ringkasan 30 Detik</span>
+            <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">AI</span>
+          </div>
+          <span class="material-icons text-indigo-500">auto_awesome</span>
+        </button>
+        <div id="summary-content" class="px-5 pb-5 hidden">
+          <div id="summary-loading" class="flex items-center gap-2 text-sm text-gray-500"><span class="material-icons animate-spin text-sm">refresh</span> Membuat ringkasan AI...</div>
+          <ul id="summary-list" class="space-y-3 hidden"></ul>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- 🎧 Text-to-Speech Player -->
+      <div id="tts-player" class="mb-8 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <button onclick="toggleTTS()" id="tts-btn" class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center hover:bg-indigo-800 transition-colors shadow-md">
+              <span class="material-icons" id="tts-icon">headphones</span>
+            </button>
+            <div>
+              <span class="text-sm font-semibold text-gray-800">Dengarkan Berita</span>
+              <p class="text-xs text-gray-500" id="tts-status">Klik untuk mendengarkan</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="tts-speed" onchange="changeTTSSpeed(this.value)" class="text-xs bg-white border border-gray-300 rounded px-2 py-1 cursor-pointer">
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+            </select>
+            <button onclick="stopTTS()" class="text-gray-400 hover:text-red-500 transition-colors" title="Stop">
+              <span class="material-icons text-xl">stop</span>
+            </button>
+          </div>
+        </div>
+        <div id="tts-progress-bar" class="mt-3 h-1 bg-gray-200 rounded-full overflow-hidden hidden">
+          <div id="tts-progress" class="h-full bg-primary rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
       <!-- Featured Image -->
       {% if article.thumbnail_url %}
       <figure class="mb-10">
@@ -79,15 +167,29 @@ content %}
 
       <!-- Excerpt -->
       <div class="prose prose-lg max-w-none mb-6">
-        <p class="lead text-xl text-gray-700 font-medium">{{ article.excerpt }}</p>
+        <p id="article-excerpt" class="lead text-xl text-gray-700 font-medium">{{ article.excerpt }}</p>
       </div>
 
       <!-- Article Content -->
       <div
+        id="article-content"
         class="prose prose-lg max-w-none mb-12 prose-headings:font-bold prose-headings:text-gray-900 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-gray-700 prose-p:leading-relaxed prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-700 prose-ul:list-disc prose-ul:pl-6 prose-ol:list-decimal prose-ol:pl-6 prose-li:text-gray-700 prose-img:rounded-xl"
       >
         {{ article.content | safe }}
       </div>
+
+      <!-- 📊 AI Infographic -->
+      {% if infographic_url %}
+      <div class="mb-10 bg-gray-50 border border-gray-200 rounded-xl p-6">
+        <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+          <span class="material-icons text-primary">insights</span>
+          Infografis Visual
+          <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">AI</span>
+        </h3>
+        <img src="{{ infographic_url }}" alt="Infografis: {{ article.title }}" class="w-full rounded-lg" loading="lazy" />
+        <p class="mt-3 text-xs text-gray-400 text-center">Ilustrasi infografis dibuat dengan AI — untuk tujuan visualisasi</p>
+      </div>
+      {% endif %}
 
       <!-- Tags -->
       {% if tags %}
@@ -164,4 +266,196 @@ content %}
     </aside>
   </div>
 </div>
+{% endblock %} {% block scripts %}
+<script>
+  // ── Store original content for translation reset ──
+  const originalTitle = document.getElementById("article-title").innerHTML;
+  const originalExcerpt = document.getElementById("article-excerpt").innerHTML;
+  const originalContent = document.getElementById("article-content").innerHTML;
+  const articleSlug = "{{ article.slug }}";
+
+  // ── AI Summary (on-demand load) ──
+  async function loadSummary() {
+    const content = document.getElementById("summary-content");
+    const loading = document.getElementById("summary-loading");
+    const list = document.getElementById("summary-list");
+    const btn = document.getElementById("summary-load-btn");
+
+    content.classList.remove("hidden");
+    loading.classList.remove("hidden");
+    btn.disabled = true;
+
+    try {
+      const resp = await fetch(`/api/summarize/${articleSlug}`);
+      const data = await resp.json();
+      if (data.summary && data.summary.length > 0) {
+        loading.classList.add("hidden");
+        list.classList.remove("hidden");
+        data.summary.forEach((point, i) => {
+          const li = document.createElement("li");
+          li.className = "flex items-start gap-3";
+          li.innerHTML = `
+          <span class="flex-shrink-0 w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">${i + 1}</span>
+          <span class="text-gray-800 text-sm leading-relaxed">${point}</span>`;
+          list.appendChild(li);
+        });
+      } else {
+        loading.innerHTML = "❌ Tidak dapat membuat ringkasan";
+      }
+    } catch (e) {
+      loading.innerHTML = "❌ Gagal memuat ringkasan";
+    }
+  }
+
+  // ── Text-to-Speech ──
+  let ttsUtterance = null;
+  let ttsPlaying = false;
+  let ttsPaused = false;
+
+  function getArticleText() {
+    const content = document.getElementById("article-content");
+    return content.innerText || content.textContent;
+  }
+
+  function toggleTTS() {
+    const synth = window.speechSynthesis;
+    const icon = document.getElementById("tts-icon");
+    const status = document.getElementById("tts-status");
+    const progressBar = document.getElementById("tts-progress-bar");
+
+    if (!synth) {
+      status.textContent = "Browser tidak mendukung TTS";
+      return;
+    }
+
+    if (ttsPlaying && !ttsPaused) {
+      synth.pause();
+      ttsPaused = true;
+      icon.textContent = "play_arrow";
+      status.textContent = "Dijeda";
+      return;
+    }
+
+    if (ttsPaused) {
+      synth.resume();
+      ttsPaused = false;
+      icon.textContent = "pause";
+      status.textContent = "Sedang membacakan...";
+      return;
+    }
+
+    // Start fresh
+    synth.cancel();
+    const text = getArticleText();
+    ttsUtterance = new SpeechSynthesisUtterance(text);
+    ttsUtterance.lang = "id-ID";
+    ttsUtterance.rate = parseFloat(document.getElementById("tts-speed").value);
+
+    // Try to find Indonesian voice
+    const voices = synth.getVoices();
+    const idVoice = voices.find((v) => v.lang.startsWith("id")) || voices.find((v) => v.lang.startsWith("ms"));
+    if (idVoice) ttsUtterance.voice = idVoice;
+
+    ttsUtterance.onstart = () => {
+      ttsPlaying = true;
+      icon.textContent = "pause";
+      status.textContent = "Sedang membacakan...";
+      progressBar.classList.remove("hidden");
+    };
+
+    ttsUtterance.onend = () => {
+      ttsPlaying = false;
+      ttsPaused = false;
+      icon.textContent = "headphones";
+      status.textContent = "Selesai";
+      progressBar.classList.add("hidden");
+    };
+
+    // Simulate progress
+    const words = text.split(/\s+/).length;
+    const speed = parseFloat(document.getElementById("tts-speed").value);
+    const estDuration = (words / (150 * speed)) * 60 * 1000; // ms
+    let startTime = Date.now();
+    const progressEl = document.getElementById("tts-progress");
+
+    function updateProgress() {
+      if (!ttsPlaying || ttsPaused) return;
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min((elapsed / estDuration) * 100, 100);
+      progressEl.style.width = pct + "%";
+      if (pct < 100) requestAnimationFrame(updateProgress);
+    }
+
+    ttsUtterance.onstart = () => {
+      ttsPlaying = true;
+      icon.textContent = "pause";
+      status.textContent = "Sedang membacakan...";
+      progressBar.classList.remove("hidden");
+      startTime = Date.now();
+      updateProgress();
+    };
+
+    synth.speak(ttsUtterance);
+  }
+
+  function stopTTS() {
+    window.speechSynthesis.cancel();
+    ttsPlaying = false;
+    ttsPaused = false;
+    document.getElementById("tts-icon").textContent = "headphones";
+    document.getElementById("tts-status").textContent = "Klik untuk mendengarkan";
+    document.getElementById("tts-progress-bar").classList.add("hidden");
+    document.getElementById("tts-progress").style.width = "0%";
+  }
+
+  function changeTTSSpeed(val) {
+    if (ttsPlaying) {
+      stopTTS();
+      setTimeout(toggleTTS, 100);
+    }
+  }
+
+  // Load voices (some browsers need this)
+  if (window.speechSynthesis) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+  }
+
+  // ── Translation ──
+  async function translateArticle(lang) {
+    if (lang === "id") {
+      document.getElementById("article-title").innerHTML = originalTitle;
+      document.getElementById("article-excerpt").innerHTML = originalExcerpt;
+      document.getElementById("article-content").innerHTML = originalContent;
+      return;
+    }
+
+    const titleEl = document.getElementById("article-title");
+    const excerptEl = document.getElementById("article-excerpt");
+    const contentEl = document.getElementById("article-content");
+
+    // Show loading
+    titleEl.style.opacity = "0.5";
+    contentEl.style.opacity = "0.5";
+
+    try {
+      const resp = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: articleSlug, lang: lang }),
+      });
+      const data = await resp.json();
+      if (data.title) {
+        titleEl.innerHTML = data.title;
+        excerptEl.innerHTML = data.excerpt || "";
+        contentEl.innerHTML = data.content || "";
+      }
+    } catch (e) {
+      console.error("Translation failed:", e);
+    } finally {
+      titleEl.style.opacity = "1";
+      contentEl.style.opacity = "1";
+    }
+  }
+</script>
 {% endblock %}

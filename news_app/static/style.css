@@ -1,6 +1,6 @@
-/* ── CikalNews — Tailwind-based Minimal Custom CSS ──────────── */
+/* ── CikalNews — Custom CSS ──────────── */
 
-/* Line clamp utilities (fallback for older browsers) */
+/* Line clamp utilities */
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -13,4 +13,129 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Chat widget animation */
+.chat-panel-animation {
+  animation: chatSlideUp 0.3s ease-out;
+}
+
+@keyframes chatSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Chat bounce dots */
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Breaking news ticker */
+.breaking-ticker {
+  animation: ticker-scroll 30s linear infinite;
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+.breaking-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* Source attribution style */
+.source-attribution {
+  font-size: 0.8rem;
+  color: #6b7280;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 0.75rem;
+  margin-top: 1.5rem;
+  font-style: italic;
+}
+
+/* Hot news scrollable section */
+.hot-news-scroll {
+  display: flex;
+  overflow-x: auto;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.hot-news-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.hot-news-scroll::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 2px;
+}
+
+.hot-news-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
+}
+
+.hot-news-card {
+  flex: 0 0 280px;
+  scroll-snap-align: start;
+}
+
+/* Summary arrow rotation */
+.summary-arrow.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* TTS progress animation */
+#tts-progress {
+  transition: width 0.5s linear;
+}
+
+/* Newsletter topic select dark option fix */
+#newsletter-topics option {
+  background: white;
+  color: #111;
+}
+
+/* PWA install prompt */
+.pwa-install-banner {
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Smooth transitions for translation */
+#article-title,
+#article-content,
+#article-excerpt {
+  transition: opacity 0.3s ease;
 }

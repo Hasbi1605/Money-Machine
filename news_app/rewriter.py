@@ -91,30 +91,61 @@ Tone: {cat_config['tone']}.
 **Kategori:** {category}
 **Target kata:** {word_target} kata
 
-**Instruksi:**
-1. JANGAN copy paste dari sumber. Tulis ulang dengan kata-kata sendiri yang ORIGINAL.
-2. Buat judul yang menarik dan click-worthy (boleh berbeda dari headline asli).
-3. Tulis artikel lengkap dengan:
-   - Paragraf pembuka yang menarik perhatian
-   - 3-5 subjudul (H2) untuk membagi konten
-   - Fakta dan konteks yang relevan
-   - Paragraf penutup/kesimpulan
-4. Gunakan format HTML untuk konten (h2, p, strong, ul/li, blockquote).
-5. JANGAN gunakan H1 (judul sudah ditangani template).
-6. Tulis meta description 150-160 karakter.
-7. Suggest 4-6 tags yang relevan.
-8. Suggest search query untuk mencari gambar thumbnail yang relevan (dalam bahasa Inggris, untuk Pexels).
+**STANDAR JURNALISME PROFESIONAL — WAJIB DIIKUTI:**
+
+1. STRUKTUR INVERTED PYRAMID:
+   - Paragraf 1 (Lede): Jawab 5W1H — Siapa, Apa, Kapan, Di mana, Mengapa, Bagaimana
+   - Paragraf 2-3 (Nut Graf): Jelaskan mengapa berita ini penting bagi pembaca
+   - Paragraf 4+ (Body): Detail, data, kutipan, konteks
+   - Paragraf terakhir: Background/konteks historis
+
+2. ATRIBUSI & KUTIPAN:
+   - SETIAP fakta harus diatribusikan: "Menurut [sumber]...", "Berdasarkan data [lembaga]..."
+   - Sertakan MINIMAL 2 kutipan langsung (gunakan <blockquote>) dari narasumber/ahli terkait
+   - Format kutipan: <blockquote>"Kutipan langsung di sini," ujar [Nama], [Jabatan].</blockquote>
+
+3. DATA & VALIDITAS:
+   - Sertakan angka spesifik, statistik, persentase jika tersedia
+   - Sebutkan sumber data: "Data [lembaga] menunjukkan..."
+   - Bandingkan dengan data periode sebelumnya jika relevan
+
+4. GAYA PENULISAN:
+   - Paragraf PENDEK: maksimal 2-3 kalimat per paragraf
+   - Kalimat SINGKAT: maksimal 20 kata per kalimat
+   - NETRAL: tidak ada opini penulis, biarkan fakta berbicara
+   - Gunakan active voice, hindari passive voice
+   - Jelaskan istilah teknis/asing dalam tanda kurung
+
+5. FORMAT HTML WAJIB:
+   - <blockquote> untuk kutipan langsung
+   - <strong> untuk penekanan fakta penting
+   - <h2> untuk subjudul (3-5 per artikel)
+   - <ul>/<li> untuk daftar data/poin
+   - <p> untuk setiap paragraf (JANGAN gabung paragraf)
+   - JANGAN gunakan H1 (judul sudah ditangani template)
+   - Tambahkan atribusi sumber di akhir: <p class="source-attribution">Sumber: {source}</p>
+
+6. AI SUMMARY:
+   - Buat 3 poin ringkasan utama (masing-masing 1 kalimat singkat)
+   - Ini untuk fitur "Baca 30 Detik" agar pembaca bisa cepat tangkap inti berita
+
+7. INFOGRAPHIC:
+   - Jika artikel mengandung data numerik/statistik, buat prompt deskriptif (Bahasa Inggris)
+     untuk AI image generator membuat infografis yang relevan
+   - Jika tidak ada data, kosongkan field ini
 {affiliate_instruction}
 
 **Output format JSON:**
 {{
-  "title": "Judul artikel yang menarik",
+  "title": "Judul artikel yang menarik dan click-worthy",
   "slug": "judul-artikel-url-friendly",
-  "content": "<h2>...</h2><p>...</p>...",
+  "content": "<h2>...</h2><p>...</p><blockquote>...</blockquote>...",
   "excerpt": "Ringkasan 2-3 kalimat untuk preview",
   "meta_description": "Meta description 150-160 chars",
   "tags": ["tag1", "tag2", ...],
   "thumbnail_query": "english search query for relevant image",
+  "ai_summary": ["Poin ringkasan 1", "Poin ringkasan 2", "Poin ringkasan 3"],
+  "infographic_prompt": "A clean infographic showing... (atau kosong jika tidak ada data)",
   "word_count": 1000
 }}"""
 

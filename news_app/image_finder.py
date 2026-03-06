@@ -1,9 +1,10 @@
 """
-Image Finder — searches Pexels for relevant news thumbnails.
-Reuses Pexels API integration from social_engine.
+Image Finder — Hybrid strategy: Pollinations AI + Pexels fallback.
+Generates relevant images for news articles using AI or stock photos.
 """
 
 import random
+import urllib.parse
 from typing import Optional
 
 import aiohttp
@@ -12,7 +13,13 @@ from loguru import logger
 from shared.config import settings
 
 
-async def find_thumbnail(
+def generate_pollinations_url(prompt: str, width: int = 1200, height: int = 630) -> str:
+    """Generate AI image URL via Pollinations (free, no API key needed)."""
+    encoded = urllib.parse.quote(prompt)
+    return f"https://image.pollinations.ai/prompt/{encoded}?width={width}&height={height}&nologo=true"
+
+
+async def find_thumbnail_pexels(
     query: str,
     orientation: str = "landscape",
     per_page: int = 10,
@@ -20,13 +27,10 @@ async def find_thumbnail(
     """
     Search Pexels for a relevant thumbnail image.
     Returns the image URL (direct link) or None.
-
-    We return the Pexels URL directly instead of downloading,
-    to save storage on Render free tier.
     """
     api_key = settings.pexels.api_key
     if not api_key:
-        logger.warning("Pexels API key not set — no thumbnail")
+        logger.warning("Pexels API key not set — skipping Pexels")
         return None
 
     headers = {"Authorization": api_key}
@@ -56,7 +60,6 @@ async def find_thumbnail(
                     return None
 
                 photo = random.choice(photos)
-                # "landscape" size ≈ 1200x627 — perfect for article thumbnail
                 url = (
                     photo.get("src", {}).get("landscape")
                     or photo.get("src", {}).get("large")
@@ -79,12 +82,21 @@ CATEGORY_FALLBACKS = {
 }
 
 
-async def get_article_thumbnail(query: str, category: str) -> str:
+async def get_article_thumbnail(query: str, category: str, ai_prompt: str = "") -> str:
     """
-    Get a thumbnail URL for an article.
-    Tries Pexels first, falls back to a category-specific default.
+    Multi-source thumbnail strategy:
+    1. Pollinations AI (most relevant, free, no API key)
+    2. Pexels stock photo (fallback)
+    3. Category-specific default (final fallback)
     """
-    url = await find_thumbnail(query)
+    # Strategy 1: AI Generated via Pollinations
+    if ai_prompt and ai_prompt.strip():
+        prompt = f"photorealistic news photograph, editorial style, {ai_prompt}"
+        logger.info(f"Using Pollinations AI for thumbnail: {ai_prompt[:50]}...")
+        return generate_pollinations_url(prompt)
+
+    # Strategy 2: Pexels stock photo
+    url = await find_thumbnail_pexels(query)
     if url:
         return url
 
@@ -97,9 +109,10 @@ async def get_article_thumbnail(query: str, category: str) -> str:
         "rekomendasi": "smartphone gadget review",
     }
     simple = simple_queries.get(category, "news")
-    url = await find_thumbnail(simple)
+    url = await find_thumbnail_pexels(simple)
     if url:
         return url
 
-    # Fallback to static URL
+    # Strategy 3: Fallback to static URL
     return CATEGORY_FALLBACKS.get(category, CATEGORY_FALLBACKS["teknologi"])
+

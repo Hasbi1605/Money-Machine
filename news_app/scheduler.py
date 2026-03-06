@@ -60,9 +60,10 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 if not article:
                     continue
 
-                # Get thumbnail
+                # Get thumbnail (use AI prompt for hybrid image strategy)
                 thumbnail_query = article.get("thumbnail_query", topic)
-                thumbnail = await get_article_thumbnail(thumbnail_query, "rekomendasi")
+                ai_prompt = article.get("thumbnail_query", "")  # Use as AI image prompt too
+                thumbnail = await get_article_thumbnail(thumbnail_query, "rekomendasi", ai_prompt=ai_prompt)
                 article["thumbnail_url"] = thumbnail
 
                 # Save to DB
@@ -93,9 +94,10 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 if not article:
                     continue
 
-                # Get thumbnail
+                # Get thumbnail (use AI prompt for hybrid image strategy)
                 thumbnail_query = article.get("thumbnail_query", headline["title"])
-                thumbnail = await get_article_thumbnail(thumbnail_query, category)
+                ai_prompt = article.get("thumbnail_query", "")  # Use as AI image prompt too
+                thumbnail = await get_article_thumbnail(thumbnail_query, category, ai_prompt=ai_prompt)
                 article["thumbnail_url"] = thumbnail
 
                 # Save to DB
@@ -150,7 +152,10 @@ async def scheduler_loop():
     Background scheduler that runs the pipeline periodically.
     - News categories (bola, teknologi, politik, ekonomi): every 6 hours
     - Rekomendasi: every 12 hours
+    - Newsletter: every 24 hours (morning)
     """
+    from news_app.newsletter import send_newsletter
+
     logger.info("📅 News scheduler started")
 
     # Skip initial auto-generate on startup to avoid crash on Render free tier.
@@ -171,6 +176,14 @@ async def scheduler_loop():
             # Rekomendasi every 2 cycles (12 hours)
             if cycle % 2 == 0:
                 await run_news_pipeline(categories=["rekomendasi"], articles_per_cat=2)
+
+            # Newsletter every 4 cycles (24 hours)
+            if cycle % 4 == 0:
+                try:
+                    sent = await send_newsletter()
+                    logger.info(f"📬 Newsletter cycle complete: {sent} emails")
+                except Exception as e:
+                    logger.error(f"Newsletter failed: {e}")
 
         except Exception as e:
             logger.error(f"Scheduler cycle {cycle} failed: {e}")

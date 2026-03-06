@@ -102,18 +102,44 @@ async def init_db():
                 source_title TEXT,
                 source_url TEXT,
                 source_name TEXT,
+                ai_summary TEXT,
+                infographic_prompt TEXT,
                 views INTEGER DEFAULT 0,
                 status TEXT DEFAULT 'published',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 published_at TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                topics TEXT DEFAULT '',
+                status TEXT DEFAULT 'active',
+                token TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_news_category ON news_articles(category);
             CREATE INDEX IF NOT EXISTS idx_news_slug ON news_articles(slug);
             CREATE INDEX IF NOT EXISTS idx_news_status ON news_articles(status);
             CREATE INDEX IF NOT EXISTS idx_news_created ON news_articles(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_subscriber_email ON newsletter_subscribers(email);
         """)
         await db.commit()
+
+        # Migrate existing databases: add new columns if they don't exist
+        migration_columns = [
+            ("news_articles", "ai_summary", "TEXT DEFAULT ''"),
+            ("news_articles", "infographic_prompt", "TEXT DEFAULT ''"),
+        ]
+        for table, column, col_type in migration_columns:
+            try:
+                await db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                await db.commit()
+                logger.info(f"Migration: added {column} to {table}")
+            except Exception:
+                pass  # Column already exists
+
         logger.info("Database initialized")
 
 
@@ -257,12 +283,17 @@ async def save_news_article(article: Dict) -> Optional[int]:
             if isinstance(tags, list):
                 tags = ",".join(tags)
 
+            ai_summary = article.get("ai_summary", "")
+            if isinstance(ai_summary, list):
+                ai_summary = "|||".join(ai_summary)
+
             cursor = await db.execute(
                 """INSERT INTO news_articles
                    (title, slug, category, content, excerpt, meta_description,
                     tags, thumbnail_url, source_title, source_url, source_name,
+                    ai_summary, infographic_prompt,
                     status, published_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?)""",
                 (
                     article["title"],
                     article["slug"],
@@ -275,6 +306,8 @@ async def save_news_article(article: Dict) -> Optional[int]:
                     article.get("source_title", ""),
                     article.get("source_url", ""),
                     article.get("source_name", ""),
+                    ai_summary,
+                    article.get("infographic_prompt", ""),
                     datetime.utcnow().isoformat(),
                 ),
             )
@@ -387,3 +420,68 @@ async def search_news(query: str, limit: int = 20) -> List[Dict]:
             (f"%{query}%", f"%{query}%", limit),
         )
         return [dict(r) for r in rows]
+
+
+# ── Newsletter DB helpers ─────────────────────────────────────
+
+async def save_subscriber(email: str, topics: str = "", token: str = "") -> Optional[int]:
+    """Save a newsletter subscriber. Returns subscriber ID or None on duplicate."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        try:
+            cursor = await db.execute(
+                """INSERT INTO newsletter_subscribers (email, topics, token, status)
+                   VALUES (?, ?, ?, 'active')
+                   ON CONFLICT(email) DO UPDATE SET topics=?, status='active', token=?""",
+                (email, topics, token, topics, token),
+            )
+            await db.commit()
+            logger.info(f"Subscriber saved: {email}")
+            return cursor.lastrowid
+        except Exception as e:
+            logger.error(f"Error saving subscriber: {e}")
+            return None
+
+
+async def unsubscribe(email: str, token: str = "") -> bool:
+    """Unsubscribe a newsletter subscriber."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        if token:
+            await db.execute(
+                "UPDATE newsletter_subscribers SET status='unsubscribed' WHERE email=? AND token=?",
+                (email, token),
+            )
+        else:
+            await db.execute(
+                "UPDATE newsletter_subscribers SET status='unsubscribed' WHERE email=?",
+                (email,),
+            )
+        await db.commit()
+        return True
+
+
+async def get_active_subscribers(topic: str = "") -> List[Dict]:
+    """Get all active newsletter subscribers, optionally filtered by topic."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        if topic:
+            rows = await db.execute_fetchall(
+                """SELECT * FROM newsletter_subscribers
+                   WHERE status='active' AND (topics LIKE ? OR topics='')""",
+                (f"%{topic}%",),
+            )
+        else:
+            rows = await db.execute_fetchall(
+                "SELECT * FROM newsletter_subscribers WHERE status='active'"
+            )
+        return [dict(r) for r in rows]
+
+
+async def update_article_summary(slug: str, summary: str) -> bool:
+    """Update the AI summary for an existing article."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE news_articles SET ai_summary=? WHERE slug=?",
+            (summary, slug),
+        )
+        await db.commit()
+        return True
