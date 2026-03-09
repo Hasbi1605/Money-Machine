@@ -326,26 +326,27 @@ async def get_news_articles(
     category: str = "",
     limit: int = 20,
     offset: int = 0,
+    date_filter: str = "",
 ) -> List[Dict]:
-    """Get news articles, optionally filtered by category."""
+    """Get news articles, optionally filtered by category and date."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
 
+        query = "SELECT * FROM news_articles WHERE status='published'"
+        params = []
+        
         if category:
-            rows = await db.execute_fetchall(
-                """SELECT * FROM news_articles
-                   WHERE category=? AND status='published'
-                   ORDER BY created_at DESC LIMIT ? OFFSET ?""",
-                (category, limit, offset),
-            )
-        else:
-            rows = await db.execute_fetchall(
-                """SELECT * FROM news_articles
-                   WHERE status='published'
-                   ORDER BY created_at DESC LIMIT ? OFFSET ?""",
-                (limit, offset),
-            )
+            query += " AND category=?"
+            params.append(category)
+        
+        if date_filter:
+            query += " AND date(created_at) = ?"
+            params.append(date_filter)
+            
+        query += " ORDER BY created_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
 
+        rows = await db.execute_fetchall(query, tuple(params))
         return [dict(r) for r in rows]
 
 
@@ -368,18 +369,21 @@ async def get_news_by_slug(slug: str) -> Optional[Dict]:
         return None
 
 
-async def get_news_count(category: str = "") -> int:
+async def get_news_count(category: str = "", date_filter: str = "") -> int:
     """Count published news articles."""
     async with aiosqlite.connect(DB_PATH) as db:
+        query = "SELECT COUNT(*) FROM news_articles WHERE status='published'"
+        params = []
+        
         if category:
-            rows = await db.execute_fetchall(
-                "SELECT COUNT(*) FROM news_articles WHERE category=? AND status='published'",
-                (category,),
-            )
-        else:
-            rows = await db.execute_fetchall(
-                "SELECT COUNT(*) FROM news_articles WHERE status='published'"
-            )
+            query += " AND category=?"
+            params.append(category)
+            
+        if date_filter:
+            query += " AND date(created_at) = ?"
+            params.append(date_filter)
+
+        rows = await db.execute_fetchall(query, tuple(params))
         return rows[0][0] if rows else 0
 
 
@@ -403,6 +407,19 @@ async def get_trending_news(limit: int = 10) -> List[Dict]:
         rows = await db.execute_fetchall(
             """SELECT * FROM news_articles
                WHERE status='published'
+               ORDER BY views DESC LIMIT ?""",
+            (limit,),
+        )
+        return [dict(r) for r in rows]
+
+
+async def get_weekly_trending_news(limit: int = 10) -> List[Dict]:
+    """Get most viewed articles created in the last 7 days."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        rows = await db.execute_fetchall(
+            """SELECT * FROM news_articles
+               WHERE status='published' AND created_at >= datetime('now', '-7 days')
                ORDER BY views DESC LIMIT ?""",
             (limit,),
         )

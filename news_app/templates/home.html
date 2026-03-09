@@ -71,8 +71,8 @@
       {% if hot_news %}
       <section>
         <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Berita Hangat</h2>
-        <div class="hot-news-wrapper overflow-hidden relative">
-          <div class="hot-news-track flex gap-4" id="hotNewsTrack">
+        <div class="hot-news-wrapper overflow-x-auto relative" id="hotNewsWrapper">
+          <div class="hot-news-track flex gap-4 w-max" id="hotNewsTrack">
             {% for item in hot_news %}
             <article class="hot-news-card flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300">
               <a href="/artikel/{{ item.slug }}" class="block">
@@ -209,8 +209,9 @@
 <script>
   // Auto-scrolling Hot News
   (function () {
+    const wrapper = document.getElementById("hotNewsWrapper");
     const track = document.getElementById("hotNewsTrack");
-    if (!track) return;
+    if (!wrapper || !track) return;
 
     let scrollPos = 0;
     const cardWidth = 276; // 260px card + 16px gap
@@ -218,15 +219,65 @@
     const resetPoint = totalCards * cardWidth;
     let speed = 0.5;
     let paused = false;
+    let isDragging = false;
+    let startX;
+    let scrollLeftStart;
 
-    track.addEventListener("mouseenter", () => (paused = true));
-    track.addEventListener("mouseleave", () => (paused = false));
+    wrapper.style.cursor = "grab";
+
+    wrapper.addEventListener("mouseenter", () => (paused = true));
+    wrapper.addEventListener("mouseleave", () => {
+      paused = false;
+      isDragging = false;
+      wrapper.style.cursor = "grab";
+    });
+    wrapper.addEventListener("touchstart", () => (paused = true), { passive: true });
+    wrapper.addEventListener("touchend", () => (paused = false));
+
+    // Mouse drag to scroll
+    wrapper.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      paused = true;
+      startX = e.pageX - wrapper.offsetLeft;
+      scrollLeftStart = wrapper.scrollLeft;
+      wrapper.style.cursor = "grabbing";
+    });
+
+    wrapper.addEventListener("mouseup", () => {
+      isDragging = false;
+      paused = false;
+      wrapper.style.cursor = "grab";
+    });
+
+    wrapper.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      const x = e.pageX - wrapper.offsetLeft;
+      const walk = (x - startX) * 1.5; // manual scroll speed multiplier
+      wrapper.scrollLeft = scrollLeftStart - walk;
+    });
+
+    // Native scroll sync
+    wrapper.addEventListener("scroll", () => {
+      scrollPos = wrapper.scrollLeft;
+
+      // Seamless loop
+      if (wrapper.scrollLeft >= resetPoint) {
+        wrapper.scrollLeft = 0;
+        scrollPos = 0;
+      } else if (wrapper.scrollLeft <= 0) {
+        wrapper.scrollLeft = resetPoint - 1;
+        scrollPos = resetPoint - 1;
+      }
+    });
 
     function animate() {
-      if (!paused) {
+      if (!paused && !isDragging) {
         scrollPos += speed;
-        if (scrollPos >= resetPoint) scrollPos = 0;
-        track.style.transform = `translateX(-${scrollPos}px)`;
+        if (scrollPos >= resetPoint) {
+          scrollPos = 0;
+        }
+        wrapper.scrollLeft = scrollPos;
       }
       requestAnimationFrame(animate);
     }

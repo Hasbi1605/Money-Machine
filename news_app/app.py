@@ -28,6 +28,7 @@ from shared.database import (
     get_news_count,
     get_related_news,
     get_trending_news,
+    get_weekly_trending_news,
     search_news,
     save_subscriber,
     unsubscribe as db_unsubscribe,
@@ -134,29 +135,41 @@ templates.env.globals["now"] = datetime.utcnow
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(
+    request: Request,
+    page: int = Query(1, ge=1),
+    date_filter: str = Query(None, description="Format YYYY-MM-DD")
+):
     """Homepage with redesigned layout: breaking, hero, hot, trending, daily, weekly."""
 
-    # All recent articles
-    all_recent = await get_news_articles(limit=30)
+    # Top sections only show on first page without date filter
+    hero = None
+    sub_heroes = []
+    hot_news = []
+    
+    if page == 1 and not date_filter:
+        all_recent = await get_news_articles(limit=12)
+        hero = all_recent[0] if all_recent else None
+        sub_heroes = all_recent[1:4] if len(all_recent) > 1 else []
+        hot_news = all_recent[4:12] if len(all_recent) > 4 else []
 
-    # Hero: latest article
-    hero = all_recent[0] if all_recent else None
+    # Daily News: Paginated list
+    total = await get_news_count(date_filter=date_filter)
+    total_pages = max(1, math.ceil(total / ARTICLES_PER_PAGE))
+    page = min(page, total_pages)
+    offset = (page - 1) * ARTICLES_PER_PAGE
 
-    # Sub-heroes: next 3 articles
-    sub_heroes = all_recent[1:4] if len(all_recent) > 1 else []
+    daily_news = await get_news_articles(
+        limit=ARTICLES_PER_PAGE,
+        offset=offset,
+        date_filter=date_filter
+    )
 
-    # Hot News: articles from last 6 hours (recent ones after sub-heroes)
-    hot_news = all_recent[4:12] if len(all_recent) > 4 else []
-
-    # Daily News: all recent articles for infinite scroll effect
-    daily_news = all_recent[4:20] if len(all_recent) > 4 else []
-
-    # Trending: most viewed
+    # Trending: most viewed all time
     trending = await get_trending_news(limit=10)
 
-    # Weekly picks: top viewed (simulates editor's pick)
-    weekly_picks = await get_trending_news(limit=6)
+    # Weekly picks: top viewed last 7 days
+    weekly_picks = await get_weekly_trending_news(limit=6)
 
     return templates.TemplateResponse("home.html", {
         "request": request,
@@ -166,6 +179,9 @@ async def home(request: Request):
         "daily_news": daily_news,
         "trending": trending,
         "weekly_picks": weekly_picks,
+        "page": page,
+        "total_pages": total_pages,
+        "date_filter": date_filter or "",
         "page_title": "CikalNews — Portal Berita AI Indonesia",
     })
 

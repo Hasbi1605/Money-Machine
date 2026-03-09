@@ -54,11 +54,15 @@
 /* Hot news auto-scroll wrapper */
 .hot-news-wrapper {
   position: relative;
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hot-news-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome/Safari/Opera */
 }
 
 .hot-news-track {
-  will-change: transform;
-  transition: none;
+  will-change: scroll-position;
 }
 
 /* Source attribution style */
