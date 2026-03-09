@@ -25,7 +25,7 @@ async def fetch_og_image(url: str) -> str:
     try:
         headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
         async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.get(url, timeout=10) as resp:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as resp:
                 if resp.status == 200:
                     html = await resp.text()
                     soup = BeautifulSoup(html, 'html.parser')
@@ -33,7 +33,7 @@ async def fetch_og_image(url: str) -> str:
                     if og_image and og_image.get('content'):
                         return og_image['content']
     except Exception as e:
-        logger.warning(f"Failed to fetch og:image for {url}: {e}")
+        logger.debug(f"og:image fetch skipped for {url[:60]}: {e}")
     return ""
 
 
@@ -96,12 +96,12 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                     generated += 1
                     logger.info(f"[rekomendasi] ✅ Saved: {article['title']}")
 
-                # Wait between articles to respect rate limits (3 models × 20 req/day = 60 total)
-                await asyncio.sleep(15)
+                # Wait between articles to respect rate limits
+                await asyncio.sleep(5)
 
             except Exception as e:
                 logger.error(f"[rekomendasi] Failed '{topic}': {e}")
-                await asyncio.sleep(20)
+                await asyncio.sleep(5)
     else:
         # Get trending topics from RSS + Google News
         headlines = await get_trending_topics(category, count=max_articles * 2)
@@ -121,11 +121,14 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 # Get thumbnail (use AI prompt for hybrid image strategy)
                 thumbnail_query = article.get("thumbnail_query", headline["title"])
                 ai_prompt = article.get("thumbnail_query", "")  # Use as AI image prompt too
-                
-                # Fetch high-quality og:image from the source URL instead of relying on low-res RSS thumbnails
-                original_img = await fetch_og_image(headline.get("source_url", ""))
-                if not original_img:
-                    original_img = article.get("original_image_url", "")
+                # Fetch high-quality og:image (with fast 5s timeout, non-blocking)
+                original_img = headline.get("original_image_url", "")
+                try:
+                    og_img = await fetch_og_image(headline.get("source_url", ""))
+                    if og_img:
+                        original_img = og_img 
+                except Exception:
+                    pass
                     
                 thumbnail = await get_article_thumbnail(
                     thumbnail_query, category, ai_prompt=ai_prompt, original_image_url=original_img
@@ -139,11 +142,11 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                     logger.info(f"[{category}] ✅ Saved: {article['title']}")
 
                 # Wait between articles
-                await asyncio.sleep(15)
+                await asyncio.sleep(5)
 
             except Exception as e:
                 logger.error(f"[{category}] Failed: {e}")
-                await asyncio.sleep(20)
+                await asyncio.sleep(5)
 
     logger.info(f"[{category}] Generated {generated} articles")
     return generated
@@ -171,8 +174,8 @@ async def run_news_pipeline(categories: List[str] = None, articles_per_cat: int 
 
         # Pause between categories to spread out API usage
         if cat != categories[-1]:
-            logger.info(f"⏳ Waiting 30s before next category...")
-            await asyncio.sleep(30)
+            logger.info(f"⏳ Waiting 10s before next category...")
+            await asyncio.sleep(10)
 
     elapsed = (datetime.utcnow() - start).total_seconds()
     logger.info(f"✅ Pipeline complete! Generated {total} articles in {elapsed:.0f}s")

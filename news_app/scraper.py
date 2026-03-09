@@ -24,46 +24,36 @@ from shared.database import get_news_articles
 
 RSS_SOURCES: Dict[str, List[Dict]] = {
     "bola": [
-        # === SOCCER-ONLY FEEDS (no mixed sports) ===
-        {"name": "Goal Indonesia", "url": "https://www.goal.com/feeds/id/news"},
-        {"name": "Bola.net", "url": "https://www.bola.net/feed/"},
         {"name": "Kompas Bola", "url": "https://bola.kompas.com/rss"},
         {"name": "Bola.com", "url": "https://www.bola.com/rss"},
+        {"name": "Detik Sport", "url": "https://rss.detik.com/index.php/sport"},
+        {"name": "CNN Sport", "url": "https://www.cnnindonesia.com/olahraga/rss"},
         {"name": "Tribun Bola", "url": "https://www.tribunnews.com/rss/superskor"},
-        {"name": "BBC Sport Football", "url": "https://feeds.bbci.co.uk/sport/football/rss.xml"},
-        {"name": "ESPN FC", "url": "https://www.espn.com/espn/rss/soccer/news"},
     ],
     "teknologi": [
         {"name": "CNN Tech", "url": "https://www.cnnindonesia.com/teknologi/rss"},
-        {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml"},
-        {"name": "Ars Technica", "url": "https://feeds.arstechnica.com/arstechnica/index"},
-        {"name": "TechCrunch", "url": "https://techcrunch.com/feed/"},
-        {"name": "Wired", "url": "https://www.wired.com/feed/rss"},
         {"name": "Detik Inet", "url": "https://rss.detik.com/index.php/inet"},
         {"name": "Kompas Tekno", "url": "https://tekno.kompas.com/rss"},
+        {"name": "Liputan6 Tekno", "url": "https://www.liputan6.com/feed/tekno"},
+        {"name": "Suara Tech", "url": "https://www.suara.com/rss/tekno"},
     ],
     "politik": [
-        {"name": "BBC Indonesia", "url": "https://feeds.bbci.co.uk/indonesia/rss.xml"},
-        {"name": "CNN Internasional", "url": "https://www.cnnindonesia.com/internasional/rss"},
         {"name": "CNN Nasional", "url": "https://www.cnnindonesia.com/nasional/rss"},
-        {"name": "Reuters World", "url": "https://www.reutersagency.com/feed/?taxonomy=best-sectors&post_type=best"},
-        {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml"},
-        {"name": "Kompas Internasional", "url": "https://internasional.kompas.com/rss"},
+        {"name": "CNN Internasional", "url": "https://www.cnnindonesia.com/internasional/rss"},
         {"name": "Detik News", "url": "https://rss.detik.com/index.php/detikcom"},
+        {"name": "Kompas Internasional", "url": "https://internasional.kompas.com/rss"},
+        {"name": "Liputan6 News", "url": "https://www.liputan6.com/feed/news"},
     ],
     "ekonomi": [
-        {"name": "CNBC Indonesia", "url": "https://www.cnbcindonesia.com/rss"},
         {"name": "CNN Ekonomi", "url": "https://www.cnnindonesia.com/ekonomi/rss"},
         {"name": "Detik Finance", "url": "https://rss.detik.com/index.php/finance"},
         {"name": "Kompas Money", "url": "https://money.kompas.com/rss"},
         {"name": "Bisnis.com", "url": "https://www.bisnis.com/rss"},
-        {"name": "Bloomberg", "url": "https://www.bloomberg.com/feed/podcast/decrypted.xml"},
-        {"name": "Kontan", "url": "https://www.kontan.co.id/rss"},
+        {"name": "Liputan6 Bisnis", "url": "https://www.liputan6.com/feed/bisnis"},
     ],
     "rekomendasi": [
         {"name": "GSMArena", "url": "https://www.gsmarena.com/rss-news-reviews.php3"},
         {"name": "Gadgets360", "url": "https://feeds.feedburner.com/gadgets360-latest"},
-        {"name": "Tom's Guide", "url": "https://www.tomsguide.com/feeds/all"},
     ],
 }
 
@@ -199,10 +189,17 @@ def is_duplicate(new_title: str, existing_titles: list, threshold: float = 0.55)
 def is_soccer_content(title: str, summary: str = "") -> bool:
     """Check if content is about soccer/football (not other sports)."""
     combined = f"{title} {summary}".lower()
+    # Must have at least one soccer-related keyword
+    soccer_keywords = ["bola", "gol", "pemain", "pelatih", "liga", "piala",
+                       "sepak", "football", "soccer", "transfer", "wasit",
+                       "stadion", "pertandingan", "laga", "derby", "klasemen",
+                       "timnas", "striker", "kiper", "gawang"]
+    has_soccer = any(kw in combined for kw in soccer_keywords)
+    
     for keyword in BOLA_EXCLUDE_KEYWORDS:
         if keyword.lower() in combined:
             return False
-    return True
+    return has_soccer or True  # Still allow through if no exclude keywords match
 
 
 # Track used headlines to avoid duplicates (DB-based, survives Render restarts)
@@ -416,11 +413,11 @@ async def get_trending_topics(
         title = item["title"]
 
         # Skip if too similar to existing DB articles
-        if is_duplicate(title, existing_titles, threshold=0.55):
+        if is_duplicate(title, existing_titles, threshold=0.65):
             continue
 
         # Skip if too similar to already-accepted headlines in this batch
-        if is_duplicate(title, accepted_titles, threshold=0.50):
+        if is_duplicate(title, accepted_titles, threshold=0.60):
             continue
 
         unique.append(item)
