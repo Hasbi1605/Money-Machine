@@ -279,20 +279,19 @@ Buka website untuk melihat hasilnya."""
 
 async def cmd_rekap(chat_id: str):
     """Handle /rekap — trigger Instagram carousel generation."""
-    from news_app.social_generator import generate_carousel, generate_caption
-    
     task_key = "rekap"
     if task_key in _running_tasks:
         await send_message(chat_id, "⏳ Generate Rekap IG sedang berjalan...")
         return
-        
-    await send_message(chat_id, "📸 Memulai generate Carousel Instagram...\n⏳ Mohon tunggu (proses gambar & AI copywriting).")
+
     _running_tasks[task_key] = True
 
     try:
+        from news_app.social_generator import generate_carousel, generate_caption
         from shared.notifier import notifier
-        from loguru import logger
         
+        await send_message(chat_id, "📸 Memulai generate Carousel Instagram...\n⏳ Mohon tunggu (proses gambar & AI copywriting).")
+
         articles = await get_news_articles(limit=5)
         if not articles:
             await send_message(chat_id, "📭 Belum ada artikel untuk direkap.")
@@ -309,7 +308,7 @@ async def cmd_rekap(chat_id: str):
 
     except Exception as e:
         logger.error(f"Generate rekap failed: {traceback.format_exc()}")
-        await send_message(chat_id, f"❌ <b>Generate Rekap gagal:</b>\n<code>{str(e)[:200]}</code>")
+        await send_message(chat_id, f"❌ <b>Generate Rekap gagal:</b>\n<code>{str(e)[:300]}</code>")
     finally:
         _running_tasks.pop(task_key, None)
 
