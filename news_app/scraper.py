@@ -24,18 +24,20 @@ from shared.database import get_news_articles
 
 RSS_SOURCES: Dict[str, List[Dict]] = {
     "bola": [
+        # Soccer-only feeds
         {"name": "Kompas Bola", "url": "https://bola.kompas.com/rss"},
         {"name": "Bola.com", "url": "https://www.bola.com/rss"},
-        {"name": "Detik Sport", "url": "https://rss.detik.com/index.php/sport"},
-        {"name": "CNN Sport", "url": "https://www.cnnindonesia.com/olahraga/rss"},
         {"name": "Tribun Bola", "url": "https://www.tribunnews.com/rss/superskor"},
+        {"name": "BBC Football", "url": "https://feeds.bbci.co.uk/sport/football/rss.xml"},
+        {"name": "Goal Indonesia", "url": "https://www.goal.com/feeds/id/news"},
     ],
     "teknologi": [
         {"name": "CNN Tech", "url": "https://www.cnnindonesia.com/teknologi/rss"},
         {"name": "Detik Inet", "url": "https://rss.detik.com/index.php/inet"},
         {"name": "Kompas Tekno", "url": "https://tekno.kompas.com/rss"},
         {"name": "Liputan6 Tekno", "url": "https://www.liputan6.com/feed/tekno"},
-        {"name": "Suara Tech", "url": "https://www.suara.com/rss/tekno"},
+        {"name": "The Verge", "url": "https://www.theverge.com/rss/index.xml"},
+        {"name": "TechCrunch", "url": "https://techcrunch.com/feed/"},
     ],
     "politik": [
         {"name": "CNN Nasional", "url": "https://www.cnnindonesia.com/nasional/rss"},
@@ -43,6 +45,8 @@ RSS_SOURCES: Dict[str, List[Dict]] = {
         {"name": "Detik News", "url": "https://rss.detik.com/index.php/detikcom"},
         {"name": "Kompas Internasional", "url": "https://internasional.kompas.com/rss"},
         {"name": "Liputan6 News", "url": "https://www.liputan6.com/feed/news"},
+        {"name": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml"},
+        {"name": "BBC Indonesia", "url": "https://feeds.bbci.co.uk/indonesia/rss.xml"},
     ],
     "ekonomi": [
         {"name": "CNN Ekonomi", "url": "https://www.cnnindonesia.com/ekonomi/rss"},
@@ -50,6 +54,7 @@ RSS_SOURCES: Dict[str, List[Dict]] = {
         {"name": "Kompas Money", "url": "https://money.kompas.com/rss"},
         {"name": "Bisnis.com", "url": "https://www.bisnis.com/rss"},
         {"name": "Liputan6 Bisnis", "url": "https://www.liputan6.com/feed/bisnis"},
+        {"name": "CNBC Indonesia", "url": "https://www.cnbcindonesia.com/rss"},
     ],
     "rekomendasi": [
         {"name": "GSMArena", "url": "https://www.gsmarena.com/rss-news-reviews.php3"},
@@ -189,17 +194,10 @@ def is_duplicate(new_title: str, existing_titles: list, threshold: float = 0.55)
 def is_soccer_content(title: str, summary: str = "") -> bool:
     """Check if content is about soccer/football (not other sports)."""
     combined = f"{title} {summary}".lower()
-    # Must have at least one soccer-related keyword
-    soccer_keywords = ["bola", "gol", "pemain", "pelatih", "liga", "piala",
-                       "sepak", "football", "soccer", "transfer", "wasit",
-                       "stadion", "pertandingan", "laga", "derby", "klasemen",
-                       "timnas", "striker", "kiper", "gawang"]
-    has_soccer = any(kw in combined for kw in soccer_keywords)
-    
     for keyword in BOLA_EXCLUDE_KEYWORDS:
         if keyword.lower() in combined:
             return False
-    return has_soccer or True  # Still allow through if no exclude keywords match
+    return True
 
 
 # Track used headlines to avoid duplicates (DB-based, survives Render restarts)
@@ -413,11 +411,11 @@ async def get_trending_topics(
         title = item["title"]
 
         # Skip if too similar to existing DB articles
-        if is_duplicate(title, existing_titles, threshold=0.65):
+        if is_duplicate(title, existing_titles, threshold=0.55):
             continue
 
         # Skip if too similar to already-accepted headlines in this batch
-        if is_duplicate(title, accepted_titles, threshold=0.60):
+        if is_duplicate(title, accepted_titles, threshold=0.50):
             continue
 
         unique.append(item)
