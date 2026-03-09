@@ -191,12 +191,13 @@ async def category_page(
     request: Request,
     category: str,
     page: int = Query(1, ge=1),
+    date_filter: str = Query(None, description="Format YYYY-MM-DD"),
 ):
-    """Category listing with pagination."""
+    """Category listing with pagination and date filter."""
     if category not in CATEGORIES:
         return RedirectResponse("/")
 
-    total = await get_news_count(category=category)
+    total = await get_news_count(category=category, date_filter=date_filter)
     total_pages = max(1, math.ceil(total / ARTICLES_PER_PAGE))
     page = min(page, total_pages)
     offset = (page - 1) * ARTICLES_PER_PAGE
@@ -205,6 +206,7 @@ async def category_page(
         category=category,
         limit=ARTICLES_PER_PAGE,
         offset=offset,
+        date_filter=date_filter,
     )
 
     trending = await get_trending_news(limit=8)
@@ -220,7 +222,8 @@ async def category_page(
         "page": page,
         "total_pages": total_pages,
         "total": total,
-        "page_title": f"{cat_info['label']} — CikalNews",
+        "date_filter": date_filter or "",
+        "page_title": f"Berita {cat_info['label']} — CikalNews",
     })
 
 

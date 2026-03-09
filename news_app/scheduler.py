@@ -63,7 +63,10 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 # Get thumbnail (use AI prompt for hybrid image strategy)
                 thumbnail_query = article.get("thumbnail_query", topic)
                 ai_prompt = article.get("thumbnail_query", "")  # Use as AI image prompt too
-                thumbnail = await get_article_thumbnail(thumbnail_query, "rekomendasi", ai_prompt=ai_prompt)
+                original_img = article.get("original_image_url", "")
+                thumbnail = await get_article_thumbnail(
+                    thumbnail_query, "rekomendasi", ai_prompt=ai_prompt, original_image_url=original_img
+                )
                 article["thumbnail_url"] = thumbnail
 
                 # Save to DB
@@ -97,7 +100,10 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 # Get thumbnail (use AI prompt for hybrid image strategy)
                 thumbnail_query = article.get("thumbnail_query", headline["title"])
                 ai_prompt = article.get("thumbnail_query", "")  # Use as AI image prompt too
-                thumbnail = await get_article_thumbnail(thumbnail_query, category, ai_prompt=ai_prompt)
+                original_img = article.get("original_image_url", "")
+                thumbnail = await get_article_thumbnail(
+                    thumbnail_query, category, ai_prompt=ai_prompt, original_image_url=original_img
+                )
                 article["thumbnail_url"] = thumbnail
 
                 # Save to DB

@@ -167,6 +167,7 @@ Tone: {cat_config['tone']}.
         result["source_title"] = title
         result["source_url"] = headline.get("source_url", "")
         result["source_name"] = source
+        result["original_image_url"] = headline.get("original_image_url", "")
         result["generated_at"] = datetime.utcnow().isoformat()
 
         word_count = result.get("word_count", len(result["content"].split()))

@@ -240,7 +240,23 @@ async def fetch_rss_feed(url: str, source_name: str = "") -> List[Dict]:
             if not title:
                 continue
 
-            # Clean HTML from summary
+            # Clean HTML from summary but first try to extract image if any
+            image_url = ""
+            if "media_content" in entry and len(entry.media_content) > 0:
+                image_url = entry.media_content[0].get("url", "")
+            elif "media_thumbnail" in entry and len(entry.media_thumbnail) > 0:
+                image_url = entry.media_thumbnail[0].get("url", "")
+            elif "links" in entry:
+                for link in entry.links:
+                    if link.get("rel") == "enclosure" and "image" in link.get("type", ""):
+                        image_url = link.get("href", "")
+                        break
+            
+            if not image_url and "<img" in summary:
+                match = re.search(r'src="([^"]+)"', summary)
+                if match:
+                    image_url = match.group(1)
+
             summary = re.sub(r"<[^>]+>", "", summary)
             summary = summary[:500]  # limit length
 
@@ -250,6 +266,7 @@ async def fetch_rss_feed(url: str, source_name: str = "") -> List[Dict]:
                 "source_url": link,
                 "source_name": source_name,
                 "published": published,
+                "original_image_url": image_url,
             })
 
         return results
@@ -311,6 +328,13 @@ async def search_google_news(query: str, num_results: int = 5) -> List[Dict]:
                 source_name = parts[1].strip() if len(parts) > 1 else "Google News"
 
             summary = entry.get("summary", entry.get("description", "")).strip()
+            
+            image_url = ""
+            if "<img" in summary:
+                match = re.search(r'src="([^"]+)"', summary)
+                if match:
+                    image_url = match.group(1)
+
             summary = re.sub(r"<[^>]+>", "", summary)[:500]
             link = entry.get("link", "")
 
@@ -321,6 +345,7 @@ async def search_google_news(query: str, num_results: int = 5) -> List[Dict]:
                     "source_url": link,
                     "source_name": source_name or "Google News",
                     "published": entry.get("published", ""),
+                    "original_image_url": image_url,
                 })
 
         return results

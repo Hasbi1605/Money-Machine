@@ -82,37 +82,34 @@ CATEGORY_FALLBACKS = {
 }
 
 
-async def get_article_thumbnail(query: str, category: str, ai_prompt: str = "") -> str:
+async def get_article_thumbnail(query: str, category: str, ai_prompt: str = "", original_image_url: str = "") -> str:
     """
     Multi-source thumbnail strategy:
-    1. Pexels stock photo (reliable, proven)
-    2. Pollinations AI (fallback if Pexels finds nothing)
-    3. Category-specific default (final fallback)
+    1. Original Image (most accurate)
+    2. Pollinations AI (Nano Banana - high quality photorealistic)
+    3. Pexels stock photo (fallback)
+    4. Category-specific default (final fallback)
     """
-    # Strategy 1: Pexels stock photo (most reliable)
-    url = await find_thumbnail_pexels(query)
-    if url:
-        return url
+    # Strategy 1: Original Image
+    if original_image_url and original_image_url.startswith("http"):
+        logger.info(f"Using original image from source.")
+        return original_image_url
 
-    # Try a simpler query (just the category keyword)
-    simple_queries = {
-        "bola": "football soccer",
-        "teknologi": "technology gadget",
-        "politik": "world politics",
-        "ekonomi": "business economy",
-        "rekomendasi": "smartphone gadget review",
-    }
-    simple = simple_queries.get(category, "news")
-    url = await find_thumbnail_pexels(simple)
-    if url:
-        return url
-
-    # Strategy 2: AI Generated via Pollinations (fallback)
+    # Strategy 2: AI Generated via Pollinations (highly specific)
     if ai_prompt and ai_prompt.strip():
-        prompt = f"photorealistic news photograph, editorial style, {ai_prompt}"
-        logger.info(f"Pexels failed, using Pollinations AI: {ai_prompt[:50]}...")
+        # Clean the prompt to ensure it's photorealistic and relevant
+        prompt = f"High quality photorealistic news editorial photography of: {ai_prompt}"
+        logger.info(f"Using Pollinations AI: {prompt[:50]}...")
         return generate_pollinations_url(prompt)
 
-    # Strategy 3: Fallback to static URL
+    # Strategy 3: Pexels fallback (less specific, generic stock)
+    url = await find_thumbnail_pexels(query)
+    if url:
+        logger.info(f"Using Pexels fallback: {query}")
+        return url
+
+    # Strategy 4: Fallback to static URL
+    logger.info(f"Using static category fallback for: {category}")
     return CATEGORY_FALLBACKS.get(category, CATEGORY_FALLBACKS["teknologi"])
+
 
