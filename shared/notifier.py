@@ -43,6 +43,54 @@ class TelegramNotifier:
         except Exception as e:
             logger.error(f"Telegram error: {e}")
 
+    async def send_media_group(self, media_list: list, caption: str = "") -> bool:
+        """
+        Send a media group (album of images) to Telegram.
+        media_list: List of io.BytesIO objects
+        caption: Caption for the first image
+        """
+        if not self.enabled or not media_list:
+            logger.debug("Telegram disabled or empty media list.")
+            return False
+
+        try:
+            data = aiohttp.FormData()
+            data.add_field("chat_id", self.chat_id)
+            
+            media_json = []
+            for i, bio in enumerate(media_list):
+                # We need to attach the file content using aiohttp
+                field_name = f"photo_{i}"
+                data.add_field(field_name, bio.getvalue(), filename=bio.name, content_type="image/png")
+                
+                # Build the media object for the JSON payload
+                media_item = {
+                    "type": "photo",
+                    "media": f"attach://{field_name}",
+                }
+                if i == 0 and caption:
+                    media_item["caption"] = caption
+                    media_item["parse_mode"] = "HTML"
+                media_json.append(media_item)
+
+            import json
+            data.add_field("media", json.dumps(media_json))
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/sendMediaGroup", data=data
+                ) as resp:
+                    if resp.status != 200:
+                        logger.error(f"Telegram sendMediaGroup failed: {await resp.text()}")
+                        return False
+                    else:
+                        logger.info(f"Telegram media group sent ({len(media_list)} items)")
+                        return True
+                        
+        except Exception as e:
+            logger.error(f"Telegram media group error: {e}")
+            return False
+
     async def send_success(self, pipeline: str, details: str):
         """Send a success notification."""
         msg = f"✅ <b>{pipeline}</b>\n{details}"

@@ -15,6 +15,27 @@ from news_app.rewriter import rewrite_news, generate_recommendation_article
 from news_app.image_finder import get_article_thumbnail
 from shared.database import save_news_article
 
+async def fetch_og_image(url: str) -> str:
+    from bs4 import BeautifulSoup
+    import aiohttp
+    
+    if not url:
+        return ""
+        
+    try:
+        headers = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.get(url, timeout=10) as resp:
+                if resp.status == 200:
+                    html = await resp.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    og_image = soup.find('meta', property='og:image')
+                    if og_image and og_image.get('content'):
+                        return og_image['content']
+    except Exception as e:
+        logger.warning(f"Failed to fetch og:image for {url}: {e}")
+    return ""
+
 
 # ── Recommendation topics pool ───────────────────────────────
 
@@ -100,7 +121,12 @@ async def generate_article_for_category(category: str, max_articles: int = 3) ->
                 # Get thumbnail (use AI prompt for hybrid image strategy)
                 thumbnail_query = article.get("thumbnail_query", headline["title"])
                 ai_prompt = article.get("thumbnail_query", "")  # Use as AI image prompt too
-                original_img = article.get("original_image_url", "")
+                
+                # Fetch high-quality og:image from the source URL instead of relying on low-res RSS thumbnails
+                original_img = await fetch_og_image(headline.get("source_url", ""))
+                if not original_img:
+                    original_img = article.get("original_image_url", "")
+                    
                 thumbnail = await get_article_thumbnail(
                     thumbnail_query, category, ai_prompt=ai_prompt, original_image_url=original_img
                 )
@@ -161,6 +187,9 @@ async def scheduler_loop():
     - Newsletter: every 24 hours (morning)
     """
     from news_app.newsletter import send_newsletter
+    from news_app.social_generator import generate_carousel, generate_caption
+    from shared.notifier import notifier
+    from shared.database import get_news_articles
 
     logger.info("📅 News scheduler started")
 
@@ -183,13 +212,27 @@ async def scheduler_loop():
             if cycle % 2 == 0:
                 await run_news_pipeline(categories=["rekomendasi"], articles_per_cat=2)
 
-            # Newsletter every 4 cycles (24 hours)
+            # Newsletter & Instagram Recap every 4 cycles (24 hours)
             if cycle % 4 == 0:
                 try:
                     sent = await send_newsletter()
                     logger.info(f"📬 Newsletter cycle complete: {sent} emails")
                 except Exception as e:
                     logger.error(f"Newsletter failed: {e}")
+
+                try:
+                    logger.info("📸 Starting daily Instagram Auto-Carousel generation...")
+                    articles = await get_news_articles(limit=5)
+                    if articles:
+                        slides = await generate_carousel(articles)
+                        caption = await generate_caption(articles)
+                        success = await notifier.send_media_group(slides, caption)
+                        if success:
+                            logger.info("✅ Daily Instagram Recap sent to Telegram.")
+                        else:
+                            logger.error("❌ Failed to send Daily Instagram Recap.")
+                except Exception as e:
+                    logger.error(f"Instagram Auto-Carousel generation failed: {e}")
 
         except Exception as e:
             logger.error(f"Scheduler cycle {cycle} failed: {e}")

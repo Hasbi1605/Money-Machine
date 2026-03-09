@@ -6,6 +6,7 @@ Commands:
   /start      - Welcome & bot info
   /tulis      - Generate all categories
   /tulis_X    - Generate specific category (bola/teknologi/politik/ekonomi/rekomendasi)
+  /rekap      - Generate Instagram carousel & caption
   /status     - System stats
   /artikel    - Latest articles
   /help       - Command list
@@ -124,6 +125,7 @@ Chat ID: <code>{chat_id}</code>
 /tulis_politik - 🌍 Generate berita politik
 /tulis_ekonomi - 📊 Generate berita ekonomi
 /tulis_rekomendasi - ⭐ Generate artikel rekomendasi
+/rekap - 📸 Generate Carousel Instagram
 /status - 📊 Status sistem & statistik
 /artikel - 📰 Artikel terbaru
 /help - ❓ Bantuan
@@ -141,6 +143,7 @@ async def cmd_help(chat_id: str):
 /tulis — Generate 2-3 berita per kategori (semua)
 /tulis_[kategori] — Generate 1 kategori spesifik
   Kategori: bola, teknologi, politik, ekonomi, rekomendasi
+/rekap — Generate Carousel Instagram (5 Berita Terpopuler)
 
 <b>Monitor:</b>
 /status — Lihat statistik artikel & sistem
@@ -274,6 +277,43 @@ Buka website untuk melihat hasilnya."""
         _running_tasks.pop(task_key, None)
 
 
+async def cmd_rekap(chat_id: str):
+    """Handle /rekap — trigger Instagram carousel generation."""
+    from news_app.social_generator import generate_carousel, generate_caption
+    
+    task_key = "rekap"
+    if task_key in _running_tasks:
+        await send_message(chat_id, "⏳ Generate Rekap IG sedang berjalan...")
+        return
+        
+    await send_message(chat_id, "📸 Memulai generate Carousel Instagram...\n⏳ Mohon tunggu (proses gambar & AI copywriting).")
+    _running_tasks[task_key] = True
+
+    try:
+        from shared.notifier import notifier
+        from loguru import logger
+        
+        articles = await get_news_articles(limit=5)
+        if not articles:
+            await send_message(chat_id, "📭 Belum ada artikel untuk direkap.")
+            return
+
+        slides = await generate_carousel(articles)
+        caption = await generate_caption(articles)
+        
+        success = await notifier.send_media_group(slides, caption)
+        if success:
+            await send_message(chat_id, "✅ Rekap Instagram berhasil dikirim! Silakan post ke IG Anda.")
+        else:
+            await send_message(chat_id, "❌ Gagal mengirim gambar rekap ke Telegram.")
+
+    except Exception as e:
+        logger.error(f"Generate rekap failed: {traceback.format_exc()}")
+        await send_message(chat_id, f"❌ <b>Generate Rekap gagal:</b>\n<code>{str(e)[:200]}</code>")
+    finally:
+        _running_tasks.pop(task_key, None)
+
+
 # ── Update Handler ────────────────────────────────────────────
 
 
@@ -311,6 +351,9 @@ async def handle_update(update: dict):
 
     elif cmd == "/artikel":
         await cmd_artikel(chat_id)
+
+    elif cmd == "/rekap":
+        asyncio.create_task(cmd_rekap(chat_id))
 
     elif cmd == "/tulis":
         # /tulis without category = all
