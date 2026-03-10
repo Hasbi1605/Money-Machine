@@ -177,6 +177,12 @@ Tone: {cat_config['tone']}.
         result["original_image_url"] = headline.get("original_image_url", "")
         result["generated_at"] = datetime.utcnow().isoformat()
 
+        # Sanitize HTML to prevent broken layout (unclosed tags, missing quotes)
+        from bs4 import BeautifulSoup
+        if result.get("content"):
+            soup = BeautifulSoup(result["content"], "html.parser")
+            result["content"] = str(soup)
+
         word_count = result.get("word_count", len(result["content"].split()))
         logger.info(f"Article ready: '{result['title']}' (~{word_count} words)")
 

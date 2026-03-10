@@ -142,6 +142,26 @@ async def init_db():
 
         logger.info("Database initialized")
 
+        # Sanitize existing articles' HTML to fix layout bugs
+        try:
+            logger.info("Starting HTML sanitization for existing articles...")
+            rows = await db.execute_fetchall("SELECT id, content FROM news_articles")
+            from bs4 import BeautifulSoup
+            updates = 0
+            for row in rows:
+                article_id, content = row
+                if not content:
+                    continue
+                soup = BeautifulSoup(content, "html.parser")
+                clean_content = str(soup)
+                if clean_content != content:
+                    await db.execute("UPDATE news_articles SET content=? WHERE id=?", (clean_content, article_id))
+                    updates += 1
+            if updates > 0:
+                await db.commit()
+            logger.info(f"Fixed broken HTML in {updates} existing articles")
+        except Exception as e:
+            logger.error(f"Error sanitizing articles: {e}")
 
 async def log_article(
     title: str, keyword: str, language: str, platform: str,
