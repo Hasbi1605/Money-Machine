@@ -178,29 +178,41 @@
       </section>
       {% endif %}
 
-      <!-- Hot Weekly News (Grid Layout) -->
+      <!-- Hot Weekly News (Horizontal Scroll Layout) -->
       {% if weekly_picks %}
-      <section class="mt-4 pt-8">
-        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Populer Minggu Ini</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {% for item in weekly_picks %}
-          <article class="bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col">
-            <a href="/artikel/{{ item.slug }}" class="block">
-              <img
-                alt="{{ item.title }}"
-                class="w-full h-40 object-cover"
-                src="{{ item.thumbnail_url }}"
-                loading="lazy"
-                onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=600'"
-              />
-              <div class="p-4 flex-1 flex flex-col">
-                <span class="text-[10px] text-primary uppercase tracking-wider font-semibold mb-1"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
-                <h3 class="text-base font-bold line-clamp-2 text-gray-900 leading-snug mb-2 hover:text-primary transition-colors">{{ item.title }}</h3>
-                <span class="text-xs text-gray-400 mt-auto">{{ time_ago(item.created_at) }}</span>
-              </div>
-            </a>
-          </article>
-          {% endfor %}
+      <section class="relative mt-4 pt-8">
+        <div class="flex items-center justify-between mb-4 border-b-2 border-gray-900 pb-2">
+          <h2 class="text-lg font-bold text-gray-900 inline-block">Populer Minggu Ini</h2>
+          <div class="flex gap-2">
+            <button id="btnScrollLeftWeekly" aria-label="Scroll Kiri" class="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+              <span class="material-icons text-sm">chevron_left</span>
+            </button>
+            <button id="btnScrollRightWeekly" aria-label="Scroll Kanan" class="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+              <span class="material-icons text-sm">chevron_right</span>
+            </button>
+          </div>
+        </div>
+        <div class="hot-news-wrapper overflow-x-auto relative scroll-smooth" id="weeklyNewsWrapper">
+          <div class="hot-news-track flex gap-4 w-max" id="weeklyNewsTrack">
+            {% for item in weekly_picks %}
+            <article class="hot-news-card flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300">
+              <a href="/artikel/{{ item.slug }}" class="block">
+                <img
+                  alt="{{ item.title }}"
+                  class="w-full h-36 object-cover"
+                  src="{{ item.thumbnail_url }}"
+                  loading="lazy"
+                  onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=600'"
+                />
+                <div class="p-3">
+                  <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
+                  <h3 class="text-sm font-semibold line-clamp-2 text-gray-900 leading-snug mt-1 mb-2">{{ item.title }}</h3>
+                  <span class="text-xs text-gray-400">{{ time_ago(item.created_at) }}</span>
+                </div>
+              </a>
+            </article>
+            {% endfor %}
+          </div>
         </div>
       </section>
       {% endif %}
@@ -250,59 +262,64 @@
 </div>
 
 <script>
-  // Manual scrolling Hot News
+  // Manual scrolling for horizontal sections
   document.addEventListener("DOMContentLoaded", () => {
-    const wrapper = document.getElementById("hotNewsWrapper");
-    const btnLeft = document.getElementById("btnScrollLeft");
-    const btnRight = document.getElementById("btnScrollRight");
+    function setupHorizontalScroll(wrapperId, btnLeftId, btnRightId) {
+      const wrapper = document.getElementById(wrapperId);
+      const btnLeft = document.getElementById(btnLeftId);
+      const btnRight = document.getElementById(btnRightId);
 
-    if (!wrapper || (!btnLeft && !btnRight)) return;
+      if (!wrapper || (!btnLeft && !btnRight)) return;
 
-    const scrollAmount = 280; // approx 1 card + gap width
+      const scrollAmount = 280; // approx 1 card + gap width
 
-    if (btnLeft) {
-      btnLeft.addEventListener("click", () => {
-        wrapper.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+      if (btnLeft) {
+        btnLeft.addEventListener("click", () => {
+          wrapper.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+        });
+      }
+
+      if (btnRight) {
+        btnRight.addEventListener("click", () => {
+          wrapper.scrollBy({ left: scrollAmount, behavior: "smooth" });
+        });
+      }
+
+      // Mouse drag to scroll
+      let isDragging = false;
+      let startX;
+      let scrollLeftStart;
+
+      wrapper.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        startX = e.pageX - wrapper.offsetLeft;
+        scrollLeftStart = wrapper.scrollLeft;
+        wrapper.style.cursor = "grabbing";
+        wrapper.classList.remove("scroll-smooth"); // Disable smooth scrolling while dragging
+      });
+
+      wrapper.addEventListener("mouseleave", () => {
+        isDragging = false;
+        wrapper.style.cursor = "grab";
+      });
+
+      wrapper.addEventListener("mouseup", () => {
+        isDragging = false;
+        wrapper.style.cursor = "grab";
+        wrapper.classList.add("scroll-smooth");
+      });
+
+      wrapper.addEventListener("mousemove", (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.pageX - wrapper.offsetLeft;
+        const walk = (x - startX) * 1.5;
+        wrapper.scrollLeft = scrollLeftStart - walk;
       });
     }
 
-    if (btnRight) {
-      btnRight.addEventListener("click", () => {
-        wrapper.scrollBy({ left: scrollAmount, behavior: "smooth" });
-      });
-    }
-
-    // Mouse drag to scroll
-    let isDragging = false;
-    let startX;
-    let scrollLeftStart;
-
-    wrapper.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      startX = e.pageX - wrapper.offsetLeft;
-      scrollLeftStart = wrapper.scrollLeft;
-      wrapper.style.cursor = "grabbing";
-      wrapper.classList.remove("scroll-smooth"); // Disable smooth scrolling while dragging
-    });
-
-    wrapper.addEventListener("mouseleave", () => {
-      isDragging = false;
-      wrapper.style.cursor = "grab";
-    });
-
-    wrapper.addEventListener("mouseup", () => {
-      isDragging = false;
-      wrapper.style.cursor = "grab";
-      wrapper.classList.add("scroll-smooth");
-    });
-
-    wrapper.addEventListener("mousemove", (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const x = e.pageX - wrapper.offsetLeft;
-      const walk = (x - startX) * 1.5;
-      wrapper.scrollLeft = scrollLeftStart - walk;
-    });
+    setupHorizontalScroll("hotNewsWrapper", "btnScrollLeft", "btnScrollRight");
+    setupHorizontalScroll("weeklyNewsWrapper", "btnScrollLeftWeekly", "btnScrollRightWeekly");
   });
 </script>
 {% endblock %}
