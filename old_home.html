@@ -22,11 +22,10 @@
   <div class="flex flex-col lg:flex-row gap-8">
     <!-- Main Content -->
     <div class="w-full lg:w-2/3 flex flex-col gap-10">
-      {% if page == 1 and not date_filter %}
       <!-- Hero + Sub-heroes -->
       <section class="flex flex-col md:flex-row gap-4">
         {% if hero %}
-        <div class="w-full md:w-3/5 md:h-[480px]">
+        <div class="w-full md:w-3/5 md:min-h-[480px]">
           <a href="/artikel/{{ hero.slug }}" class="group block relative overflow-hidden rounded-xl h-full">
             <img
               alt="{{ hero.title }}"
@@ -47,7 +46,7 @@
           </a>
         </div>
         {% endif %} {% if sub_heroes %}
-        <div class="w-full md:w-2/5 flex flex-col gap-3 md:h-[480px]">
+        <div class="w-full md:w-2/5 flex flex-col gap-3 md:min-h-[480px]">
           {% for item in sub_heroes %}
           <a href="/artikel/{{ item.slug }}" class="group block relative overflow-hidden rounded-xl flex-1">
             <img
@@ -70,20 +69,29 @@
 
       <!-- Hot News (Auto-scrolling) -->
       {% if hot_news %}
-      <section class="relative">
-        <div class="flex items-center justify-between mb-4 border-b-2 border-gray-900 pb-2">
-          <h2 class="text-lg font-bold text-gray-900 inline-block">Berita Hangat</h2>
-          <div class="flex gap-2">
-            <button id="btnScrollLeft" aria-label="Scroll Kiri" class="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
-              <span class="material-icons text-sm">chevron_left</span>
-            </button>
-            <button id="btnScrollRight" aria-label="Scroll Kanan" class="bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
-              <span class="material-icons text-sm">chevron_right</span>
-            </button>
-          </div>
-        </div>
-        <div class="hot-news-wrapper overflow-x-auto relative scroll-smooth" id="hotNewsWrapper">
-          <div class="hot-news-track flex gap-4 w-max" id="hotNewsTrack">
+      <section>
+        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Berita Hangat</h2>
+        <div class="hot-news-wrapper overflow-hidden relative">
+          <div class="hot-news-track flex gap-4" id="hotNewsTrack">
+            {% for item in hot_news %}
+            <article class="hot-news-card flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300">
+              <a href="/artikel/{{ item.slug }}" class="block">
+                <img
+                  alt="{{ item.title }}"
+                  class="w-full h-36 object-cover"
+                  src="{{ item.thumbnail_url }}"
+                  loading="lazy"
+                  onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=600'"
+                />
+                <div class="p-3">
+                  <span class="text-[10px] text-gray-400 uppercase tracking-wider font-medium"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
+                  <h3 class="text-sm font-semibold line-clamp-2 text-gray-900 leading-snug mt-1 mb-2">{{ item.title }}</h3>
+                  <span class="text-xs text-gray-400">{{ time_ago(item.created_at) }}</span>
+                </div>
+              </a>
+            </article>
+            {% endfor %}
+            <!-- Duplicate for seamless loop -->
             {% for item in hot_news %}
             <article class="hot-news-card flex-shrink-0 w-[260px] bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300">
               <a href="/artikel/{{ item.slug }}" class="block">
@@ -105,32 +113,12 @@
           </div>
         </div>
       </section>
-      {% endif %} {% endif %}
+      {% endif %}
 
       <!-- Berita Terbaru -->
-      {% if daily_news or date_filter %}
+      {% if daily_news %}
       <section>
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b-2 border-gray-900 pb-2">
-          <h2 class="text-lg font-bold text-gray-900 inline-block">Berita Terbaru</h2>
-          <form method="get" action="/" class="mt-3 sm:mt-0 flex items-center gap-2">
-            <label for="date_filter" class="text-sm text-gray-600 font-medium">Filter Tanggal:</label>
-            <input
-              type="date"
-              name="date_filter"
-              id="date_filter"
-              value="{{ date_filter }}"
-              class="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              onchange="this.form.submit()"
-            />
-            {% if date_filter %}
-            <a href="/" class="text-xs text-red-500 hover:text-red-700">Clear</a>
-            {% endif %}
-          </form>
-        </div>
-
-        {% if not daily_news %}
-        <div class="py-10 text-center text-gray-500 bg-gray-50 rounded-lg">Tidak ada berita untuk tanggal ini.</div>
-        {% else %}
+        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Berita Terbaru</h2>
         <div class="space-y-5">
           {% for article in daily_news %}
           <article class="flex gap-4 group pb-5 {% if not loop.last %}border-b border-gray-100{% endif %}">
@@ -149,56 +137,6 @@
                 <a class="text-gray-900 hover:text-primary line-clamp-2 transition-colors" href="/artikel/{{ article.slug }}">{{ article.title }}</a>
               </h3>
             </div>
-          </article>
-          {% endfor %}
-        </div>
-
-        <!-- Pagination Controls -->
-        {% if total_pages > 1 %}
-        <div class="flex justify-center items-center gap-4 mt-8 pt-4 border-t border-gray-100">
-          {% if page > 1 %}
-          <a href="/?page={{ page - 1 }}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}" class="px-4 py-2 border border-blue-600 text-blue-600 rounded hover:bg-blue-50 transition-colors text-sm font-medium">
-            &larr; Sebelumnya
-          </a>
-          {% else %}
-          <span class="px-4 py-2 border border-gray-300 text-gray-400 rounded cursor-not-allowed text-sm font-medium"> &larr; Sebelumnya </span>
-          {% endif %}
-
-          <span class="text-sm font-medium text-gray-600"> Halaman {{ page }} dari {{ total_pages }} </span>
-
-          {% if page < total_pages %}
-          <a href="/?page={{ page + 1 }}{% if date_filter %}&date_filter={{ date_filter }}{% endif %}" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
-            Selanjutnya &rarr;
-          </a>
-          {% else %}
-          <span class="px-4 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed text-sm font-medium"> Selanjutnya &rarr; </span>
-          {% endif %}
-        </div>
-        {% endif %} {% endif %}
-      </section>
-      {% endif %}
-
-      <!-- Hot Weekly News (Grid Layout) -->
-      {% if weekly_picks %}
-      <section class="mt-4 pt-8">
-        <h2 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Populer Minggu Ini</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {% for item in weekly_picks %}
-          <article class="bg-white border border-gray-100 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col">
-            <a href="/artikel/{{ item.slug }}" class="block">
-              <img
-                alt="{{ item.title }}"
-                class="w-full h-40 object-cover"
-                src="{{ item.thumbnail_url }}"
-                loading="lazy"
-                onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=600'"
-              />
-              <div class="p-4 flex-1 flex flex-col">
-                <span class="text-[10px] text-primary uppercase tracking-wider font-semibold mb-1"> {% if item.category in categories %}{{ categories[item.category].label }}{% endif %} </span>
-                <h3 class="text-base font-bold line-clamp-2 text-gray-900 leading-snug mb-2 hover:text-primary transition-colors">{{ item.title }}</h3>
-                <span class="text-xs text-gray-400 mt-auto">{{ time_ago(item.created_at) }}</span>
-              </div>
-            </a>
           </article>
           {% endfor %}
         </div>
@@ -241,68 +179,59 @@
         </ul>
       </div>
 
-      <!-- Iklan / Banner di Sidebar (Opsional) -->
-      <div class="bg-gray-50 border border-gray-100 rounded-xl p-6 flex items-center justify-center min-h-[250px]">
-        <span class="text-gray-400 text-sm font-medium uppercase tracking-widest">Advertisement</span>
+      <!-- Pilihan Editor -->
+      {% if weekly_picks %}
+      <div class="bg-white border border-gray-100 rounded-xl p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4 border-b-2 border-gray-900 pb-2 inline-block">Pilihan Editor</h3>
+        <div class="space-y-4">
+          {% for item in weekly_picks[:4] %}
+          <a href="/artikel/{{ item.slug }}" class="flex gap-3 group items-start">
+            <img
+              alt="{{ item.title }}"
+              class="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+              src="{{ item.thumbnail_url }}"
+              loading="lazy"
+              onerror="this.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg?auto=compress&cs=tinysrgb&w=200'"
+            />
+            <div class="min-w-0">
+              <h4 class="text-sm font-semibold line-clamp-2 text-gray-900 group-hover:text-primary transition-colors leading-snug">{{ item.title }}</h4>
+              <span class="text-xs text-gray-400 mt-1 block">{{ time_ago(item.created_at) }}</span>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
       </div>
+      {% endif %}
     </aside>
   </div>
 </div>
 
 <script>
-  // Manual scrolling Hot News
-  document.addEventListener("DOMContentLoaded", () => {
-    const wrapper = document.getElementById("hotNewsWrapper");
-    const btnLeft = document.getElementById("btnScrollLeft");
-    const btnRight = document.getElementById("btnScrollRight");
+  // Auto-scrolling Hot News
+  (function () {
+    const track = document.getElementById("hotNewsTrack");
+    if (!track) return;
 
-    if (!wrapper || (!btnLeft && !btnRight)) return;
+    let scrollPos = 0;
+    const cardWidth = 276; // 260px card + 16px gap
+    const totalCards = track.children.length / 2; // half are duplicates
+    const resetPoint = totalCards * cardWidth;
+    let speed = 0.5;
+    let paused = false;
 
-    const scrollAmount = 280; // approx 1 card + gap width
+    track.addEventListener("mouseenter", () => (paused = true));
+    track.addEventListener("mouseleave", () => (paused = false));
 
-    if (btnLeft) {
-      btnLeft.addEventListener("click", () => {
-        wrapper.scrollBy({ left: -scrollAmount, behavior: "smooth" });
-      });
+    function animate() {
+      if (!paused) {
+        scrollPos += speed;
+        if (scrollPos >= resetPoint) scrollPos = 0;
+        track.style.transform = `translateX(-${scrollPos}px)`;
+      }
+      requestAnimationFrame(animate);
     }
 
-    if (btnRight) {
-      btnRight.addEventListener("click", () => {
-        wrapper.scrollBy({ left: scrollAmount, behavior: "smooth" });
-      });
-    }
-
-    // Mouse drag to scroll
-    let isDragging = false;
-    let startX;
-    let scrollLeftStart;
-
-    wrapper.addEventListener("mousedown", (e) => {
-      isDragging = true;
-      startX = e.pageX - wrapper.offsetLeft;
-      scrollLeftStart = wrapper.scrollLeft;
-      wrapper.style.cursor = "grabbing";
-      wrapper.classList.remove("scroll-smooth"); // Disable smooth scrolling while dragging
-    });
-
-    wrapper.addEventListener("mouseleave", () => {
-      isDragging = false;
-      wrapper.style.cursor = "grab";
-    });
-
-    wrapper.addEventListener("mouseup", () => {
-      isDragging = false;
-      wrapper.style.cursor = "grab";
-      wrapper.classList.add("scroll-smooth");
-    });
-
-    wrapper.addEventListener("mousemove", (e) => {
-      if (!isDragging) return;
-      e.preventDefault();
-      const x = e.pageX - wrapper.offsetLeft;
-      const walk = (x - startX) * 1.5;
-      wrapper.scrollLeft = scrollLeftStart - walk;
-    });
-  });
+    requestAnimationFrame(animate);
+  })();
 </script>
 {% endblock %}
