@@ -405,7 +405,6 @@ async def get_trending_topics(
 
     # Semantic deduplication against existing DB articles
     unique = []
-    accepted_titles = []  # titles accepted in this batch
 
     for item in all_headlines:
         title = item["title"]
@@ -414,12 +413,22 @@ async def get_trending_topics(
         if is_duplicate(title, existing_titles, threshold=0.55):
             continue
 
-        # Skip if too similar to already-accepted headlines in this batch
-        if is_duplicate(title, accepted_titles, threshold=0.50):
-            continue
+        # Group similar headlines in this batch instead of discarding them
+        is_grouped = False
+        for u in unique:
+            # If similar to an existing unique headline, combine facts
+            if _title_similarity(title, u["title"]) > 0.50 or _topic_overlap(title, u["title"]) > 0.6:
+                if "related_sources" not in u:
+                    u["related_sources"] = []
+                # Keep max 3 related sources (for a total of 4 sources) 
+                if len(u["related_sources"]) < 3:  
+                    u["related_sources"].append(item)
+                is_grouped = True
+                break
 
-        unique.append(item)
-        accepted_titles.append(title)
+        if not is_grouped:
+            item["related_sources"] = []
+            unique.append(item)
 
     # Shuffle to add variety, then return top `count`
     random.shuffle(unique)
@@ -427,6 +436,6 @@ async def get_trending_topics(
 
     logger.info(
         f"Trending [{category}]: {len(all_headlines)} total → "
-        f"{len(unique)} unique (semantic dedup) → returning {len(result)}"
+        f"{len(unique)} unique topics (with multi-sources) → returning {len(result)}"
     )
     return result
