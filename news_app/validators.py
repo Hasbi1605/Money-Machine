@@ -47,6 +47,41 @@ def validate_extracted_facts(facts: Dict[str, Any], content_type: ContentType) -
         
     return ValidationResult(True, "APPROVED", [])
 
+def check_filler_and_repetition(content: str) -> list[str]:
+    """
+    Heuristic checks for LLM filler, repetition, and low-information text.
+    Returns list of reasons.
+    """
+    reasons = []
+    content_lower = content.lower()
+    
+    # Common LLM platitudes
+    filler_phrases = [
+        "kesimpulannya", "pada akhirnya", "dalam lanskap modern",
+        "tidak dapat dipungkiri bahwa", "di era digital ini",
+        "seperti yang kita ketahui bersama", "merupakan hal yang penting"
+    ]
+    
+    count_fillers = sum(1 for p in filler_phrases if p in content_lower)
+    if count_fillers > 2:
+        reasons.append("Too many generic filler phrases detected (e.g. 'di era digital ini').")
+        
+    # Check for paragraph repetition (exact same sentence or very similar)
+    # Strip HTML tags for clean text checks
+    from bs4 import BeautifulSoup
+    clean_text = BeautifulSoup(content, "html.parser").get_text(separator=' ')
+    sentences = re.split(r'(?<=[.!?]) +', clean_text)
+    sentences = [s.strip().lower() for s in sentences if len(s.split()) > 5]
+    
+    seen = set()
+    for s in sentences:
+        if s in seen:
+            reasons.append("Repetitive sentence detected.")
+            break
+        seen.add(s)
+        
+    return reasons
+
 def validate_draft(draft: Dict[str, Any], content_type: ContentType) -> ValidationResult:
     """
     Validate the generated draft against strict editorial rules.
@@ -92,6 +127,11 @@ def validate_draft(draft: Dict[str, Any], content_type: ContentType) -> Validati
         if len(content.split()) > 1000:
             reasons_revision.append("HARD_NEWS is too long.")
             
+    # 4. Anti-filler checks
+    filler_reasons = check_filler_and_repetition(content)
+    if filler_reasons:
+        reasons_revision.extend(filler_reasons)
+            
     if reasons_blocked:
         return ValidationResult(False, "BLOCKED", reasons_blocked)
         
@@ -99,3 +139,4 @@ def validate_draft(draft: Dict[str, Any], content_type: ContentType) -> Validati
         return ValidationResult(False, "NEEDS_REVISION", reasons_revision)
         
     return ValidationResult(True, "APPROVED", [])
+

@@ -119,10 +119,22 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
+            CREATE TABLE IF NOT EXISTS failure_audits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source_url TEXT,
+                headline TEXT,
+                content_type TEXT,
+                failure_stage TEXT,
+                failure_reason TEXT,
+                attempt_count INTEGER DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+
             CREATE INDEX IF NOT EXISTS idx_news_category ON news_articles(category);
             CREATE INDEX IF NOT EXISTS idx_news_slug ON news_articles(slug);
             CREATE INDEX IF NOT EXISTS idx_news_status ON news_articles(status);
             CREATE INDEX IF NOT EXISTS idx_news_created ON news_articles(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_news_story_key ON news_articles(story_key);
             CREATE INDEX IF NOT EXISTS idx_subscriber_email ON newsletter_subscribers(email);
         """)
         await db.commit()
@@ -131,6 +143,7 @@ async def init_db():
         migration_columns = [
             ("news_articles", "ai_summary", "TEXT DEFAULT ''"),
             ("news_articles", "infographic_prompt", "TEXT DEFAULT ''"),
+            ("news_articles", "story_key", "TEXT UNIQUE"),
         ]
         for table, column, col_type in migration_columns:
             try:
@@ -311,9 +324,9 @@ async def save_news_article(article: Dict) -> Optional[int]:
                 """INSERT INTO news_articles
                    (title, slug, category, content, excerpt, meta_description,
                     tags, thumbnail_url, source_title, source_url, source_name,
-                    ai_summary, infographic_prompt,
+                    ai_summary, infographic_prompt, story_key,
                     status, published_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?)""",
                 (
                     article["title"],
                     article["slug"],
@@ -328,18 +341,40 @@ async def save_news_article(article: Dict) -> Optional[int]:
                     article.get("source_name", ""),
                     ai_summary,
                     article.get("infographic_prompt", ""),
+                    article.get("story_key", None),
                     datetime.utcnow().isoformat(),
                 ),
             )
             await db.commit()
-            logger.info(f"News saved: {article['title'][:50]}...")
+            logger.info(f"News saved: {article['title'][:50]}... (Key: {article.get('story_key')})")
             return cursor.lastrowid
         except Exception as e:
             if "UNIQUE" in str(e):
-                logger.info(f"Duplicate slug skipped: {article.get('slug', '')}")
+                logger.info(f"Duplicate slug or story_key skipped: {article.get('slug', '')} or {article.get('story_key', '')}")
             else:
                 logger.error(f"Error saving news: {e}")
             return None
+
+
+async def story_exists(story_key: str) -> bool:
+    """Check if a canonical story key already exists to prevent duplicates."""
+    if not story_key:
+        return False
+    async with aiosqlite.connect(DB_PATH) as db:
+        rows = await db.execute_fetchall("SELECT 1 FROM news_articles WHERE story_key=?", (story_key,))
+        return bool(rows)
+
+
+async def log_failure_audit(source_url: str, headline: str, content_type: str, failure_stage: str, failure_reason: str, attempt_count: int = 1):
+    """Persist machine audit records for failures/skips."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT INTO failure_audits (source_url, headline, content_type, failure_stage, failure_reason, attempt_count)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (source_url, headline, content_type, failure_stage, failure_reason, attempt_count)
+        )
+        await db.commit()
+
 
 
 async def get_news_articles(

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 
 class ContentType(Enum):
     HARD_NEWS = "HARD_NEWS"
@@ -7,25 +7,56 @@ class ContentType(Enum):
     ANALYSIS_EXPLAINER = "ANALYSIS_EXPLAINER"
     RECOMMENDATION_ARTICLE = "RECOMMENDATION_ARTICLE"
 
-def determine_content_type(category: str, title: str) -> ContentType:
+from shared.gemini_client import gemini
+from loguru import logger
+import json
+
+async def determine_content_type(category: str, title: str, summary: str = "") -> Tuple[ContentType, float]:
     """
-    Determine the content type based on category and title keywords.
+    Determine the content type with an LLM based on category, title, and summary.
+    Returns (ContentType, confidence_score).
+    If confidence < 0.6, falls back to HARD_NEWS.
     """
-    title_lower = title.lower()
-    
     if category == "rekomendasi":
-        return ContentType.RECOMMENDATION_ARTICLE
+        return ContentType.RECOMMENDATION_ARTICLE, 1.0
         
-    if category == "bola":
-        match_keywords = ["vs", "menang", "kalah", "imbang", "skor", "hasil pertandingan", "tekuk", "libas", "hajar", "tumbang"]
-        if any(kw in title_lower for kw in match_keywords):
-            return ContentType.MATCH_REPORT
+    prompt = f"""Tentukan kategori jurnalistik paling tepat untuk berita berikut.
+    Judul: {title}
+    Ringkasan: {summary}
+    Kategori Utama: {category}
+    
+    Pilih SATU dari Content Type berikut:
+    - HARD_NEWS: Berita faktual umum, kejadian singkat, peristiwa, kriminalitas, dll.
+    - MATCH_REPORT: Laporan hasil pertandingan olahraga (wajib ada unsur menang/kalah/skor antara dua tim).
+    - ANALYSIS_EXPLAINER: Analisis mendalam, opini, ulasan pakar, fakta-dan-data, tips/trik mendalam.
+    
+    Berikan confidence_score (0.0 - 1.0) seberapa yakin Anda dengan tipe tersebut.
+    
+    Output JSON STRICT:
+    {{"content_type": "HARD_NEWS|MATCH_REPORT|ANALYSIS_EXPLAINER", "confidence_score": 0.9}}
+    """
+    
+    try:
+        response = await gemini.generate_json(prompt, system_instruction="Kamu jurnalis senior yang ahli mengklasifikasikan jenis artikel.")
+        if response and response.get("content_type") and response.get("confidence_score") is not None:
+            c_str = response["content_type"]
+            score = float(response["confidence_score"])
             
-    analysis_keywords = ["alasan", "mengapa", "fakta", "analisis", "penyebab", "dampak", "cara", "tips"]
-    if any(kw in title_lower for kw in analysis_keywords):
-        return ContentType.ANALYSIS_EXPLAINER
+            ct = ContentType.HARD_NEWS
+            try:
+                ct = ContentType(c_str)
+            except ValueError:
+                ct = ContentType.HARD_NEWS
+                
+            if score < 0.6:
+                logger.warning(f"Low classifier confidence ({score}) for {title}. Falling back to HARD_NEWS.")
+                return ContentType.HARD_NEWS, score
+                
+            return ct, score
+    except Exception as e:
+        logger.error(f"Classification failed for {title}: {e}")
         
-    return ContentType.HARD_NEWS
+    return ContentType.HARD_NEWS, 0.0
 
 def get_content_type_rules(content_type: ContentType) -> Dict[str, Any]:
     """

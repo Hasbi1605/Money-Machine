@@ -27,7 +27,7 @@ Sisipkan link affiliate berikut secara natural di dalam artikel sebagai rekomend
 
 Jangan terkesan memaksa/sales pitch. Berikan review yang jujur dan natural."""
 
-    user_prompt = f"""Berdasarkan sekumpulan FAKTA yang telah diekstrak di bawah ini, tulis artikel berita ORIGINAL, MENDALAM, dan bernilai tambah dalam Bahasa Indonesia.
+    user_prompt = f"""Berdasarkan sekumpulan FAKTA yang telah diekstrak beserta sumbernya di bawah ini, tulis artikel berita ORIGINAL, MENDALAM, dan bernilai tambah dalam Bahasa Indonesia.
     
 **FAKTA YANG TERSEDIA:**
 {json.dumps(extracted_facts, indent=2, ensure_ascii=False)}
@@ -36,27 +36,30 @@ Jangan terkesan memaksa/sales pitch. Berikan review yang jujur dan natural."""
 **Target kata:** {word_target} kata
 
 **PROSES BERPIKIR SEBELUM MENULIS (Tuliskan ini singkat di field `thought_process`):**
-1. Review semua fakta.
+1. Review semua fakta dan sumbernya.
 2. Identifikasi benang merah.
 3. Buat outline fakta.
 4. Tentukan sudut pandang (angle) redaksi sendiri yang lebih kaya.
 
 **STANDAR JURNALISME PROFESIONAL — WAJIB DIIKUTI:**
 
-1. JANGAN PLAGIAT:
+1. ATRIBUSI SUMBER SECARA EKSPLISIT DI DALAM ARTIKEL (SANGAT PENTING):
+    - JANGAN SEKADAR MENEMPEL SUMBER DI AKHIR ARTIKEL.
+    - Semua klaim fakta, data, dan kutipan HARUS disandarkan pada sumber aslinya di dalam badan artikel.
+    - Gunakan frasa seperti: "Berdasarkan laporan [Nama Sumber]...", "Data dari [Nama Sumber] menunjukkan...", "Menurut keterangan resmi...", "[Nama Tokoh] menyatakan kepada [Nama Sumber]...".
+    - Pisahkan dengan jelas antara fakta absolut dan klaim dari sumber tertentu.
+    - Jika kutipan tidak valid atau sumbernya tidak jelas di data, JANGAN gunakan kutipan tersebut.
+    - DILARANG mengarang kutipan.
+
+2. JANGAN PLAGIAT:
     - JANGAN menyalin headline, lead, atau paragraf pertama dari media sumber mana pun.
     - REPACKAGING TOTAL: Ceritakan ulang dengan susunan alur yang benar-benar baru dan mandiri.
 
-2. NILAI TAMBAH (VALUE ADDED) — WAJIB ADA:
+3. NILAI TAMBAH (VALUE ADDED) — WAJIB ADA:
     - Ringkasan Konteks: Berikan latar belakang mengapa kejadian ini terjadi sekarang, apa kaitannya.
     - Timeline/Kronologi: Jika ini peristiwa berlanjut, berikan jejak kronologi singkat.
     - Data Pembanding: Jika ada angka/statistik, berikan skala atau perbandingan yang mudah dicerna pembaca.
     - Implikasi: Beri tahu pembaca implikasi atau dampak berita ini (What's Next?) untuk mereka atau industri.
-
-3. STRUKTUR INVERTED PYRAMID & ATRIBUSI:
-    - Paragraf 1 (Lede): Jawab 5W1H secara lugas.
-    - Sebutkan sumber secara alamiah atau gabungan: "Dihimpun dari berbagai sumber,".
-    - Sertakan kutipan langsung dari tokoh terkait (wajib gunakan tag <blockquote>).
 
 4. FORMAT HTML WAJIB (JANGAN GANGGU STRUKTUR INI):
     - <blockquote> untuk kutipan langsung narasumber
@@ -65,7 +68,6 @@ Jangan terkesan memaksa/sales pitch. Berikan review yang jujur dan natural."""
     - <ul>/<li> untuk daftar poin terstruktur (seperti timeline atau komparasi angka)
     - <p> untuk setiap paragraf (JANGAN digabung jadi teks panjang tanpa pemisah)
     - JANGAN menggunakan teks <h1> (karena judul page otomatis berukuran h1)
-    - WAJIB Tambahkan atribusi ini di paragraf paling terakhir: <p class="source-attribution">Dihimpun dari berbagai sumber peliputan utama.</p>
 
 5. AI SUMMARY:
     - Buat 3 poin ringkasan utama dan paling ringkas (masing-masing 1 kalimat) untuk "Baca 30 Detik".
