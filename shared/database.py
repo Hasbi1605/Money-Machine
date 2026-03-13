@@ -177,7 +177,12 @@ async def init_db():
         try:
             logger.info("Starting HTML sanitization for existing articles...")
             rows = await db.execute_fetchall("SELECT id, content FROM news_articles")
-            from bs4 import BeautifulSoup
+            try:
+                from bs4 import BeautifulSoup
+            except ImportError:
+                logger.warning("BeautifulSoup not found, skipping HTML sanitization.")
+                return
+
             updates = 0
             for row in rows:
                 article_id, content = row
