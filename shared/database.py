@@ -127,6 +127,11 @@ async def init_db():
                 failure_stage TEXT,
                 failure_reason TEXT,
                 attempt_count INTEGER DEFAULT 1,
+                canonical_story_key TEXT,
+                source_count INTEGER,
+                conflict_detected BOOLEAN DEFAULT 0,
+                update_vs_skip TEXT,
+                duration_ms INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -134,7 +139,6 @@ async def init_db():
             CREATE INDEX IF NOT EXISTS idx_news_slug ON news_articles(slug);
             CREATE INDEX IF NOT EXISTS idx_news_status ON news_articles(status);
             CREATE INDEX IF NOT EXISTS idx_news_created ON news_articles(created_at DESC);
-            CREATE INDEX IF NOT EXISTS idx_news_story_key ON news_articles(story_key);
             CREATE INDEX IF NOT EXISTS idx_subscriber_email ON newsletter_subscribers(email);
         """)
         await db.commit()
@@ -144,6 +148,13 @@ async def init_db():
             ("news_articles", "ai_summary", "TEXT DEFAULT ''"),
             ("news_articles", "infographic_prompt", "TEXT DEFAULT ''"),
             ("news_articles", "story_key", "TEXT UNIQUE"),
+            ("news_articles", "canonical_story_key", "TEXT"),
+            ("news_articles", "version", "INTEGER DEFAULT 1"),
+            ("failure_audits", "canonical_story_key", "TEXT"),
+            ("failure_audits", "source_count", "INTEGER"),
+            ("failure_audits", "conflict_detected", "BOOLEAN DEFAULT 0"),
+            ("failure_audits", "update_vs_skip", "TEXT"),
+            ("failure_audits", "duration_ms", "INTEGER"),
         ]
         for table, column, col_type in migration_columns:
             try:
@@ -152,6 +163,13 @@ async def init_db():
                 logger.info(f"Migration: added {column} to {table}")
             except Exception:
                 pass  # Column already exists
+                
+        # Create indices that depend on potentially migrated columns
+        try:
+            await db.execute("CREATE INDEX IF NOT EXISTS idx_news_story_key ON news_articles(story_key)")
+            await db.commit()
+        except Exception as e:
+            logger.warning(f"Could not create index idx_news_story_key: {e}")
 
         logger.info("Database initialized")
 
@@ -319,14 +337,41 @@ async def save_news_article(article: Dict) -> Optional[int]:
             ai_summary = article.get("ai_summary", "")
             if isinstance(ai_summary, list):
                 ai_summary = "|||".join(ai_summary)
+                
+            now_iso = datetime.utcnow().isoformat()
+            
+            # If this is an update to an existing canonical story
+            if article.get("canonical_story_key") and article.get("update_existing"):
+                cursor = await db.execute(
+                    """UPDATE news_articles 
+                       SET content = ?, ai_summary = ?, tags = ?, 
+                           source_url = ?, source_name = ?, 
+                           version = version + 1
+                       WHERE canonical_story_key = ?""",
+                    (
+                        article["content"],
+                        ai_summary,
+                        tags,
+                        article.get("source_url", ""),
+                        article.get("source_name", ""),
+                        article["canonical_story_key"]
+                    )
+                )
+                await db.commit()
+                if cursor.rowcount > 0:
+                    logger.info(f"News UPDATED: {article['title'][:50]}... (Canonical Key: {article['canonical_story_key']})")
+                    # Retrieve the updated ID
+                    row = await db.execute_fetchall("SELECT id FROM news_articles WHERE canonical_story_key = ?", (article["canonical_story_key"],))
+                    return row[0][0] if row else None
+                # If update fails (not found), fall through to insert
 
             cursor = await db.execute(
                 """INSERT INTO news_articles
                    (title, slug, category, content, excerpt, meta_description,
                     tags, thumbnail_url, source_title, source_url, source_name,
-                    ai_summary, infographic_prompt, story_key,
+                    ai_summary, infographic_prompt, story_key, canonical_story_key, version,
                     status, published_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'published', ?)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 'published', ?)""",
                 (
                     article["title"],
                     article["slug"],
@@ -342,7 +387,8 @@ async def save_news_article(article: Dict) -> Optional[int]:
                     ai_summary,
                     article.get("infographic_prompt", ""),
                     article.get("story_key", None),
-                    datetime.utcnow().isoformat(),
+                    article.get("canonical_story_key", None),
+                    now_iso,
                 ),
             )
             await db.commit()
@@ -364,14 +410,57 @@ async def story_exists(story_key: str) -> bool:
         rows = await db.execute_fetchall("SELECT 1 FROM news_articles WHERE story_key=?", (story_key,))
         return bool(rows)
 
+async def canonical_story_exists(canonical_key: str) -> bool:
+    """Check if a broader semantic/canonical story key already exists."""
+    if not canonical_key:
+        return False
+    async with aiosqlite.connect(DB_PATH) as db:
+        rows = await db.execute_fetchall("SELECT 1 FROM news_articles WHERE canonical_story_key=?", (canonical_key,))
+        return bool(rows)
 
-async def log_failure_audit(source_url: str, headline: str, content_type: str, failure_stage: str, failure_reason: str, attempt_count: int = 1):
+async def get_recent_article_titles(category: str, days: int = 3) -> List[Dict[str, str]]:
+    """Fetch recently published articles to run zero-shot semantic duplicate detection against them."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        
+        query = """
+            SELECT title, canonical_story_key, published_at, source_name 
+            FROM news_articles 
+            WHERE status='published' AND category=? AND published_at > ?
+            ORDER BY published_at DESC
+        """
+        rows = await db.execute_fetchall(query, (category, cutoff))
+        return [dict(row) for row in rows]
+
+
+async def log_failure_audit(
+    source_url: str, 
+    headline: str, 
+    content_type: str, 
+    failure_stage: str, 
+    failure_reason: str, 
+    attempt_count: int = 1,
+    canonical_story_key: Optional[str] = None,
+    source_count: Optional[int] = None,
+    conflict_detected: bool = False,
+    update_vs_skip: Optional[str] = None,
+    duration_ms: Optional[int] = None
+):
     """Persist machine audit records for failures/skips."""
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
-            """INSERT INTO failure_audits (source_url, headline, content_type, failure_stage, failure_reason, attempt_count)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (source_url, headline, content_type, failure_stage, failure_reason, attempt_count)
+            """INSERT INTO failure_audits (
+                 source_url, headline, content_type, failure_stage, failure_reason, 
+                 attempt_count, canonical_story_key, source_count, conflict_detected, 
+                 update_vs_skip, duration_ms
+               )
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                source_url, headline, content_type, failure_stage, failure_reason, 
+                attempt_count, canonical_story_key, source_count, conflict_detected, 
+                update_vs_skip, duration_ms
+            )
         )
         await db.commit()
 

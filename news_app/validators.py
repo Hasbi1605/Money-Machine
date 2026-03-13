@@ -2,6 +2,7 @@ import re
 from typing import Dict, Any, Tuple
 from loguru import logger
 from news_app.content_types import ContentType
+from news_app.quote_policy import enforce_quote_integrity
 
 class ValidationResult:
     def __init__(self, is_valid: bool, status: str, reasons: list[str]):
@@ -15,8 +16,7 @@ class ValidationResult:
 def validate_extracted_facts(facts: Dict[str, Any], content_type: ContentType) -> ValidationResult:
     """
     Validate that the extracted facts are sufficient to write an article.
-    Runs BEFORE drafting.
-    If blocked, the pipeline will skip generation.
+    Enforces strict hard gates per ContentType.
     """
     reasons = []
     
@@ -36,11 +36,22 @@ def validate_extracted_facts(facts: Dict[str, Any], content_type: ContentType) -
         if not team_a or not team_b or not score:
             reasons.append("MATCH_REPORT is missing critical facts: team_a, team_b, or score.")
             
-    if content_type == ContentType.HARD_NEWS:
+    elif content_type == ContentType.HARD_NEWS:
         what = ct_specific.get("what")
         who = ct_specific.get("who")
-        if not what or not who:
-            reasons.append("HARD_NEWS is missing critical facts: who or what.")
+        when = ct_specific.get("when", "")
+        if not what or not who or not when:
+            reasons.append("HARD_NEWS is missing minimum viable facts: who, what, or when.")
+            
+    elif content_type == ContentType.ANALYSIS_EXPLAINER:
+        analysis_points = ct_specific.get("analysis_points", [])
+        if not analysis_points:
+            reasons.append("ANALYSIS_EXPLAINER missing clear analysis_points.")
+            
+    elif content_type == ContentType.RECOMMENDATION_ARTICLE:
+        products = ct_specific.get("products", [])
+        if not products:
+            reasons.append("RECOMMENDATION_ARTICLE missing product identities/specs.")
             
     if reasons:
         return ValidationResult(False, "BLOCKED", reasons)
@@ -50,8 +61,9 @@ def validate_extracted_facts(facts: Dict[str, Any], content_type: ContentType) -
 def check_filler_and_repetition(content: str) -> list[str]:
     """
     Heuristic checks for LLM filler, repetition, and low-information text.
-    Returns list of reasons.
+    Includes paragraph-level fact density checks.
     """
+    from bs4 import BeautifulSoup
     reasons = []
     content_lower = content.lower()
     
@@ -59,30 +71,51 @@ def check_filler_and_repetition(content: str) -> list[str]:
     filler_phrases = [
         "kesimpulannya", "pada akhirnya", "dalam lanskap modern",
         "tidak dapat dipungkiri bahwa", "di era digital ini",
-        "seperti yang kita ketahui bersama", "merupakan hal yang penting"
+        "seperti yang kita ketahui bersama", "merupakan hal yang penting",
+        "menjadi sorotan", "tidak bisa dipungkiri"
     ]
     
     count_fillers = sum(1 for p in filler_phrases if p in content_lower)
     if count_fillers > 2:
         reasons.append("Too many generic filler phrases detected (e.g. 'di era digital ini').")
         
-    # Check for paragraph repetition (exact same sentence or very similar)
-    # Strip HTML tags for clean text checks
-    from bs4 import BeautifulSoup
-    clean_text = BeautifulSoup(content, "html.parser").get_text(separator=' ')
-    sentences = re.split(r'(?<=[.!?]) +', clean_text)
-    sentences = [s.strip().lower() for s in sentences if len(s.split()) > 5]
+    # Check for paragraph repetition and Fact-Density
+    soup = BeautifulSoup(content, "html.parser")
+    paragraphs = soup.find_all('p')
     
-    seen = set()
-    for s in sentences:
-        if s in seen:
-            reasons.append("Repetitive sentence detected.")
-            break
-        seen.add(s)
-        
+    seen_sentences = set()
+    low_density_paragraphs = 0
+    
+    for p in paragraphs:
+        text = p.get_text(separator=' ').strip()
+        if not text:
+            continue
+            
+        # Repetition check
+        sentences = re.split(r'(?<=[.!?]) +', text.lower())
+        for s in sentences:
+            s_clean = s.strip()
+            if len(s_clean.split()) > 5:
+                if s_clean in seen_sentences:
+                    reasons.append("Repetitive sentence detected.")
+                    break
+                seen_sentences.add(s_clean)
+                
+        # Density check: Count numbers and capitalized words (rough entity heuristic)
+        words = text.split()
+        if len(words) > 15:
+            # entities: Starts with upper case, or is a digit
+            entities = [w for w in words if w[0].isupper() or any(c.isdigit() for c in w)]
+            density = len(entities) / len(words)
+            if density < 0.08: # less than 8% entities in a long paragraph -> likely fluff
+                low_density_paragraphs += 1
+
+    if len(paragraphs) > 2 and low_density_paragraphs > len(paragraphs) * 0.4:
+        reasons.append("Fact density is too low. High amount of fluff/filler paragraphs detected. Please compress and stick to facts.")
+                
     return reasons
 
-def validate_draft(draft: Dict[str, Any], content_type: ContentType) -> ValidationResult:
+def validate_draft(draft: Dict[str, Any], content_type: ContentType, facts: Dict[str, Any] = None) -> ValidationResult:
     """
     Validate the generated draft against strict editorial rules.
     Runs AFTER drafting.
@@ -105,17 +138,14 @@ def validate_draft(draft: Dict[str, Any], content_type: ContentType) -> Validati
             break
             
     # 2. Hard Block on structure
-    # Must have paragraphs
     if "<p>" not in content:
         reasons_blocked.append("Missing required HTML structure: <p>")
         
-    # Must have headings
     if "<h2>" not in content and content_type != ContentType.HARD_NEWS:
         reasons_revision.append("Missing required HTML structure: <h2>")
         
     # 3. Content Type specific validations
     if content_type == ContentType.MATCH_REPORT:
-        # Check if score format like "1-0", "2-2", etc. exists
         if not re.search(r"\d+\s*-\s*\d+", content):
             reasons_revision.append("MATCH_REPORT draft seems to be missing score format (e.g. 1-0).")
             
@@ -131,6 +161,12 @@ def validate_draft(draft: Dict[str, Any], content_type: ContentType) -> Validati
     filler_reasons = check_filler_and_repetition(content)
     if filler_reasons:
         reasons_revision.extend(filler_reasons)
+        
+    # 5. Quote Integrity Check
+    if facts:
+        quote_errors = enforce_quote_integrity(content, facts)
+        if quote_errors:
+            reasons_revision.extend(quote_errors)
             
     if reasons_blocked:
         return ValidationResult(False, "BLOCKED", reasons_blocked)

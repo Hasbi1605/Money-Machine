@@ -14,6 +14,10 @@ from news_app.dedupe import generate_story_key
 from news_app.freshness import is_stale
 from news_app.entity_normalizer import enforce_entity_consistency
 from news_app.html_sanitizer import sanitize_and_repair_html
+from news_app.source_cleaner import preprocess_headline_sources
+from news_app.semantic_dedupe import evaluate_semantic_duplicate, generate_canonical_story_key
+from news_app.source_conflicts import detect_and_resolve_conflicts
+from news_app.metadata_formatter import enforce_metadata_quality
 
 MAX_RETRIES = 2
 
@@ -31,16 +35,33 @@ async def run_editorial_pipeline(
     source = headline.get("source_name", "Unknown")
     
     logger.info(f"🚀 Starting autonomous pipeline for: {title[:60]}... [{category}]")
+
+    # -1. Source Preprocessing (Clean boilerplate and injections)
+    headline = preprocess_headline_sources(headline)
     
-    # 0. Deduplication Check
+    # 0. Deduplication Check (Simple hash)
     story_key = generate_story_key(headline)
     if await story_exists(story_key):
-        logger.info(f"⏭️ Skipping duplicate story (key: {story_key})")
+        logger.info(f"⏭️ Skipping EXACT duplicate story by hash (key: {story_key})")
         return None
         
     headline["story_key"] = story_key
 
-    # 1. Content Classification with LLM confidence
+    # 1. Semantic Dedupe & Canonical Assignment
+    action, matched_canonical_key = await evaluate_semantic_duplicate(headline, category)
+    if action == "EXACT_DUPLICATE_SKIP":
+        logger.info(f"⏭️ Semantic LLM triggered EXACT_DUPLICATE_SKIP (matched: {matched_canonical_key})")
+        return None
+    elif action == "MATERIAL_UPDATE":
+        logger.info(f"🔄 Material Update detected. Will UPSERT canonical key: {matched_canonical_key}")
+        headline["canonical_story_key"] = matched_canonical_key
+        headline["update_existing"] = True
+    else:
+        # Create deterministic canonical key for NEW STORY
+        headline["canonical_story_key"] = generate_canonical_story_key(headline)
+        headline["update_existing"] = False
+
+    # 2. Content Classification with LLM confidence
     content_type, conf_score = await determine_content_type(category, title, headline.get("summary", ""))
     ct_rules = get_content_type_rules(content_type)
     logger.info(f"📋 Classified as {content_type.name} (Confidence: {conf_score:.2f})")
@@ -53,13 +74,32 @@ async def run_editorial_pipeline(
     for attempt in range(1, MAX_RETRIES + 1):
         logger.info(f"🔄 Generation Attempt {attempt}/{MAX_RETRIES}")
         
-        # 3. Fact Extraction
+        # 4. Fact Extraction
         facts = await extract_facts(headline, content_type, category)
         if not facts:
             logger.warning("Fokus ekstraksi gagal. Melewati ke percobaan berikutnya.")
             if attempt == MAX_RETRIES:
                 await log_failure_audit(source_url, title, content_type.name, "FACT_EXTRACTION", "Extraction yielded None.", attempt)
             continue
+            
+        # 4.5. Source Conflict Resolution
+        sources_meta = [{"name": headline.get("source_name", "Unknown"), "url": headline.get("source_url", "")}]
+        if headline.get("related_sources"):
+            sources_meta.extend([{"name": r.get("source_name", "Unknown"), "url": r.get("source_url", "")} for r in headline["related_sources"]])
+        
+        facts, has_unresolvable_conflict, conflict_logs = await detect_and_resolve_conflicts(facts, sources_meta)
+        if has_unresolvable_conflict:
+            logger.warning(f"🚫 Hard block due to unresolvable fact conflict across sources.")
+            if attempt == MAX_RETRIES:
+                await log_failure_audit(
+                    source_url, title, content_type.name, "SOURCE_CONFLICT", 
+                    "Unresolvable conflicts detected between sources.", attempt,
+                    canonical_story_key=headline.get("canonical_story_key"),
+                    source_count=len(sources_meta),
+                    conflict_detected=True
+                )
+            continue # Try again or skip if exhausted
+
             
         # 4. Fact Validation
         fact_validation = validate_extracted_facts(facts, content_type)
@@ -152,28 +192,30 @@ async def run_editorial_pipeline(
 
 def _finalize_article(draft: Dict[str, Any], headline: Dict[str, Any], category: str, source_url: str, source: str) -> Dict[str, Any]:
     """
-    Clean up the valid draft, apply HTML sanitization, and structure it for the database.
+    Clean up the valid draft, apply HTML sanitization, format metadata, and structure it for the database.
     """
+    # 1. Formatting standard Metadata rules (Title Case, SEO Slug, Clean Excerpt)
+    draft = enforce_metadata_quality(draft)
+    
     title = draft.get("title") or headline.get("title", "")
     
-    # Ensure slug
-    if not draft.get("slug"):
-        draft["slug"] = re.sub(r"[^a-z0-9]+", "-", title.lower())[:80].strip("-")
-
+    # 2. Re-assign Database dependencies
     draft["category"] = category
     draft["source_title"] = title
     draft["source_url"] = source_url
     draft["source_name"] = source
     draft["story_key"] = headline.get("story_key", "")
+    draft["canonical_story_key"] = headline.get("canonical_story_key", "")
+    draft["update_existing"] = headline.get("update_existing", False)
     draft["original_image_url"] = headline.get("original_image_url", "")
     draft["generated_at"] = datetime.utcnow().isoformat()
 
-    # Apply strict HTML Sanitization
+    # 3. Apply strict HTML Sanitization
     if draft.get("content"):
         safe_html = sanitize_and_repair_html(draft["content"])
         draft["content"] = safe_html
 
-    word_count = draft.get("word_count", len(draft["content"].split()))
+    word_count = draft.get("word_count", len(draft.get("content", "").split()))
     logger.info(f"✅ Article finalized safe: '{title}' (~{word_count} words)")
 
     return draft
