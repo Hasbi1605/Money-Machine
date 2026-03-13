@@ -147,7 +147,7 @@ async def init_db():
         migration_columns = [
             ("news_articles", "ai_summary", "TEXT DEFAULT ''"),
             ("news_articles", "infographic_prompt", "TEXT DEFAULT ''"),
-            ("news_articles", "story_key", "TEXT UNIQUE"),
+            ("news_articles", "story_key", "TEXT"),
             ("news_articles", "canonical_story_key", "TEXT"),
             ("news_articles", "version", "INTEGER DEFAULT 1"),
             ("failure_audits", "canonical_story_key", "TEXT"),
@@ -166,7 +166,7 @@ async def init_db():
                 
         # Create indices that depend on potentially migrated columns
         try:
-            await db.execute("CREATE INDEX IF NOT EXISTS idx_news_story_key ON news_articles(story_key)")
+            await db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_news_story_key ON news_articles(story_key)")
             await db.commit()
         except Exception as e:
             logger.warning(f"Could not create index idx_news_story_key: {e}")
